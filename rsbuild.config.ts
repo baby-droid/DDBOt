@@ -94,6 +94,9 @@ export default defineConfig({
     },
     dev: {
         hmr: true,
+        client: {
+            host: '',
+        },
     },
     tools: {
         rspack: {
