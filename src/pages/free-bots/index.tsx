@@ -11,6 +11,7 @@ interface Bot {
     fileName: string;
     category: string;
     icon: string;
+    neonColor: string;
 }
 
 const BOTS: Bot[] = [
@@ -21,6 +22,7 @@ const BOTS: Bot[] = [
         fileName: '2_2025_Updated_Expert_Speed_Bot_Version_📉📉📉📈📈📈_1_1_1765711647656.xml',
         category: 'Speed Trading',
         icon: '⚡',
+        neonColor: '#00f5ff',
     },
     {
         id: '2',
@@ -29,6 +31,7 @@ const BOTS: Bot[] = [
         fileName: '3_2025_Updated_Version_Of_Candle_Mine🇬🇧_1765711647657.xml',
         category: 'Pattern Analysis',
         icon: '🕯️',
+        neonColor: '#ff6b35',
     },
     {
         id: '3',
@@ -37,6 +40,7 @@ const BOTS: Bot[] = [
         fileName: 'Accumulators_Pro_Bot_1765711647657.xml',
         category: 'Accumulators',
         icon: '📈',
+        neonColor: '#39ff14',
     },
     {
         id: '4',
@@ -45,6 +49,7 @@ const BOTS: Bot[] = [
         fileName: 'AI_with_Entry_Point_1765711647658.xml',
         category: 'AI Trading',
         icon: '🤖',
+        neonColor: '#bf5fff',
     },
     {
         id: '5',
@@ -53,6 +58,7 @@ const BOTS: Bot[] = [
         fileName: 'ALEXSPEEDBOT__EXPRO2_(2)_(1)_1765711647659.xml',
         category: 'Speed Trading',
         icon: '🚀',
+        neonColor: '#00f5ff',
     },
     {
         id: '6',
@@ -61,6 +67,7 @@ const BOTS: Bot[] = [
         fileName: 'Alpha_Ai_Two_Predictions__1765711647659.xml',
         category: 'AI Trading',
         icon: '🎯',
+        neonColor: '#bf5fff',
     },
     {
         id: '7',
@@ -69,6 +76,7 @@ const BOTS: Bot[] = [
         fileName: 'AUTO_C4_VOLT_🇬🇧_2_🇬🇧_AI_PREMIUM_ROBOT_(2)_(1)_1765711647660.xml',
         category: 'Premium',
         icon: '⚡',
+        neonColor: '#ffd700',
     },
     {
         id: '8',
@@ -77,6 +85,7 @@ const BOTS: Bot[] = [
         fileName: 'BINARY_FLIPPER_AI_ROBOT_PLUS_+_1765711647660.xml',
         category: 'AI Trading',
         icon: '🔄',
+        neonColor: '#bf5fff',
     },
     {
         id: '9',
@@ -85,6 +94,7 @@ const BOTS: Bot[] = [
         fileName: 'BINARYTOOL_WIZARD_AI_BOT_1765711647661.xml',
         category: 'AI Trading',
         icon: '🧙',
+        neonColor: '#bf5fff',
     },
     {
         id: '10',
@@ -93,6 +103,7 @@ const BOTS: Bot[] = [
         fileName: 'BINARYTOOL@_DIFFER_V2.0_(1)_(1)_1765711647662.xml',
         category: 'Differ',
         icon: '📊',
+        neonColor: '#00f5ff',
     },
     {
         id: '11',
@@ -101,6 +112,7 @@ const BOTS: Bot[] = [
         fileName: 'BINARYTOOL@EVEN_ODD_THUNDER_AI_PRO_BOT_1765711647662.xml',
         category: 'Even/Odd',
         icon: '⚡',
+        neonColor: '#39ff14',
     },
     {
         id: '12',
@@ -109,31 +121,77 @@ const BOTS: Bot[] = [
         fileName: 'BINARYTOOL@EVEN&ODD_AI_BOT_(2)_1765711647663.xml',
         category: 'Even/Odd',
         icon: '🎲',
+        neonColor: '#39ff14',
+    },
+    {
+        id: '13',
+        name: 'Ahmed SpeedBot Over 1 Pro',
+        description: 'Ultra-fast digit over 1 bot with Martingale recovery system. Targets quick wins on 1HZ10V with aggressive profit locking.',
+        fileName: 'AHMED_SPEEDBOT_OVER_1_PRO_1774885856719.xml',
+        category: 'Speed Trading',
+        icon: '🔥',
+        neonColor: '#ff073a',
+    },
+    {
+        id: '14',
+        name: 'Fake Losses Higher Only',
+        description: 'Smart fake-loss strategy bot that waits for pattern confirmation before placing a real CALL trade on R_100.',
+        fileName: 'FAKE_LOSES_HIGHER_ONLY_1774885871252.xml',
+        category: 'Pattern Analysis',
+        icon: '🎭',
+        neonColor: '#ff6b35',
+    },
+    {
+        id: '15',
+        name: 'Digit Over 3 Bot',
+        description: 'Precision digit over 3 bot with advanced tick-by-tick analysis and smart stake management on R_10.',
+        fileName: 'Digit_Over_3_1774885882967.xml',
+        category: 'Differ',
+        icon: '🔢',
+        neonColor: '#00f5ff',
+    },
+    {
+        id: '16',
+        name: 'Ahmed SpeedBot Under 7 Pro',
+        description: 'Lightning-fast digit under 7 bot with Martingale on 1HZ25V. Rapid execution with auto profit and loss protection.',
+        fileName: 'AHMED_SPEEDBOT_under_7_pro_1774885898657.xml',
+        category: 'Speed Trading',
+        icon: '💨',
+        neonColor: '#ff073a',
+    },
+    {
+        id: '17',
+        name: 'Ahmed SpeedBot v6.2',
+        description: 'Latest flagship version of the AhmedSpeedBot series with multi-digit tracking, Martingale recovery, and advanced tick analysis.',
+        fileName: 'AHMED_SPEEDBOT_v6.2_1774885909546.xml',
+        category: 'Speed Trading',
+        icon: '🏎️',
+        neonColor: '#ff073a',
     },
 ];
 
 const FreeBots = observer(() => {
-    const { dashboard } = useStore();
+    const store = useStore();
     const [loadingBotId, setLoadingBotId] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
     const categories = ['All', ...Array.from(new Set(BOTS.map(bot => bot.category)))];
 
-    const filteredBots = selectedCategory === 'All' 
-        ? BOTS 
+    const filteredBots = selectedCategory === 'All'
+        ? BOTS
         : BOTS.filter(bot => bot.category === selectedCategory);
 
     const loadBot = async (bot: Bot) => {
         try {
             setLoadingBotId(bot.id);
-            
+
             const response = await fetch(`/bots/${bot.fileName}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch bot file');
             }
-            
+
             const xmlContent = await response.text();
-            
+
             await load({
                 block_string: xmlContent,
                 file_name: bot.name,
@@ -144,9 +202,9 @@ const FreeBots = observer(() => {
                 showIncompatibleStrategyDialog: null,
             });
 
-            dashboard.setActiveTab(1);
+            store?.dashboard?.setActiveTab(1);
             window.location.hash = 'bot_builder';
-            
+
         } catch (error) {
             console.error('Error loading bot:', error);
         } finally {
@@ -156,10 +214,12 @@ const FreeBots = observer(() => {
 
     return (
         <div className='free-bots'>
+            <div className='free-bots__bg-grid' />
             <div className='free-bots__header'>
+                <div className='free-bots__header-badge'>AI POWERED</div>
                 <h1 className='free-bots__title'>Free Trading Bots</h1>
                 <p className='free-bots__subtitle'>
-                    Explore our collection of pre-built trading bots. Click on any bot to load it into the Bot Builder.
+                    Next-generation bots engineered for precision. Load any bot instantly into the builder.
                 </p>
             </div>
 
@@ -177,7 +237,12 @@ const FreeBots = observer(() => {
 
             <div className='free-bots__grid'>
                 {filteredBots.map(bot => (
-                    <div key={bot.id} className='free-bots__card'>
+                    <div
+                        key={bot.id}
+                        className='free-bots__card'
+                        style={{ '--neon-color': bot.neonColor } as React.CSSProperties}
+                    >
+                        <div className='free-bots__card-glow' />
                         <div className='free-bots__card-header'>
                             <span className='free-bots__card-icon'>{bot.icon}</span>
                             <span className='free-bots__card-category'>{bot.category}</span>
@@ -190,12 +255,15 @@ const FreeBots = observer(() => {
                             disabled={loadingBotId === bot.id}
                         >
                             {loadingBotId === bot.id ? (
-                                <span className='free-bots__card-btn-loading'>Loading...</span>
+                                <span className='free-bots__card-btn-loading'>
+                                    <span className='free-bots__card-btn-spinner' />
+                                    Loading...
+                                </span>
                             ) : (
                                 <>
                                     <span>Load Bot</span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                                        <path d='M5 12h14M12 5l7 7-7 7' />
                                     </svg>
                                 </>
                             )}
