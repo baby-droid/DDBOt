@@ -52,26 +52,26 @@
     --tw-border-opacity: 1;
 
     .theme--light {
-        // General
-        --general-main-1: #{constants.$color-white};
-        --general-main-2: #{constants.$color-white};
+        // General — pale blue palette
+        --general-main-1: #e8f4fd;
+        --general-main-2: #e8f4fd;
         --general-main-3: #{constants.$color-grey-1};
         --general-main-4: #{constants.$alpha-color-white-4};
-        --general-section-1: #{constants.$color-grey-2};
-        --general-section-2: #{constants.$color-grey-2};
-        --general-section-3: #{constants.$color-grey-11};
-        --general-section-4: #{constants.$color-grey-12};
-        --general-section-5: #{constants.$color-grey-2};
-        --general-section-6: #{constants.$color-grey-2};
+        --general-section-1: #d6eaf8;
+        --general-section-2: #d6eaf8;
+        --general-section-3: #eaf4fb;
+        --general-section-4: #edf6fb;
+        --general-section-5: #d6eaf8;
+        --general-section-6: #d6eaf8;
         --general-disabled: #{constants.$color-grey-3};
         --general-hover: #{constants.$color-grey-4};
         --general-active: #{constants.$color-grey-5};
 
-        // Icons and Texts
-        --text-general: #{constants.$color-black-1};
-        --text-primary: #{constants.$color-grey-1};
-        --text-less-prominent: #{constants.$color-grey-1};
-        --text-prominent: #{constants.$color-black-1};
+        // Icons and Texts — optimised for pale blue background
+        --text-general: #1a2e44;
+        --text-primary: #4a6fa5;
+        --text-less-prominent: #5a7fa0;
+        --text-prominent: #0d1f35;
         --text-disabled: #{constants.$color-grey-1};
         --text-disabled-1: #{constants.$color-grey-6};
         --text-loss-danger: #{constants.$color-red-1};

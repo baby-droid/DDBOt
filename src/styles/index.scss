@@ -1,9 +1,14 @@
 @use 'components/shared/styles/themes' as *;
-@import 'https://fonts.googleapis.com/css?family=IBM+Plex+Sans:300,400,500,700&display=swap&subset=cyrillic,cyrillic-ext,latin-ext,vietnamese';
+@import 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap';
 
 body {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Inter', 'IBM Plex Sans', sans-serif;
     background: var(--general-main-1);
+    color: var(--text-general);
+    font-size: 1.4rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .icon-general-fill-path {
