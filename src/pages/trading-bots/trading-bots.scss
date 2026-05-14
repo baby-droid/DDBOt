@@ -1,0 +1,212 @@
+.trading-bots {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+    height: calc(100vh - 130px);
+    background: #f5f7fa;
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    &__title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #1a2e44;
+        margin-bottom: 0.2rem;
+    }
+
+    &__subtitle {
+        font-size: 0.9rem;
+        color: #666;
+        margin: 0;
+    }
+
+    &__search-input {
+        padding: 0.6rem 1.2rem;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        background: #fff;
+        width: 220px;
+        outline: none;
+
+        &:focus { border-color: #1a6b3a; box-shadow: 0 0 0 3px rgba(26,107,58,0.1); }
+    }
+
+    &__categories {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1.2rem;
+        flex-wrap: wrap;
+    }
+
+    &__cat-btn {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        background: #fff;
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: #555;
+        transition: all 0.2s;
+
+        &:hover { border-color: #1a6b3a; color: #1a6b3a; }
+
+        &--active {
+            background: #1a6b3a;
+            color: #fff;
+            border-color: #1a6b3a;
+        }
+    }
+
+    &__stats-bar {
+        display: flex;
+        gap: 2rem;
+        background: #0d1f3c;
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    &__stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    &__stat-val {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #00d4aa;
+    }
+
+    &__stat-label {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 0.05em;
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.2rem;
+    }
+
+    &__card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.2rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border: 2px solid transparent;
+        transition: all 0.2s;
+
+        &:hover {
+            border-color: #1a6b3a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26,107,58,0.12);
+        }
+
+        &--running {
+            border-color: #00d4aa;
+            background: linear-gradient(135deg, #f0fdf8, #fff);
+        }
+    }
+
+    &__card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.8rem;
+    }
+
+    &__card-icon { font-size: 1.8rem; }
+
+    &__card-status {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #aaa;
+        letter-spacing: 0.05em;
+
+        &--on { color: #00d4aa; }
+    }
+
+    &__card-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1a2e44;
+        margin-bottom: 0.4rem;
+    }
+
+    &__card-desc {
+        font-size: 0.82rem;
+        color: #666;
+        line-height: 1.4;
+        margin-bottom: 0.8rem;
+    }
+
+    &__card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 0.8rem;
+    }
+
+    &__card-badge {
+        background: #e8f4fd;
+        color: #0066cc;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    &__card-speed {
+        background: #fff8e1;
+        color: #f57c00;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    &__card-winrate {
+        background: #e8fdf4;
+        color: #1a6b3a;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    &__card-btn {
+        width: 100%;
+        padding: 0.6rem;
+        background: #1a6b3a;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: all 0.2s;
+
+        &:hover { background: #155c30; }
+
+        &--stop {
+            background: #c0392b;
+            &:hover { background: #a93226; }
+        }
+    }
+
+    &__empty {
+        text-align: center;
+        color: #888;
+        padding: 3rem;
+        font-size: 0.95rem;
+    }
+}

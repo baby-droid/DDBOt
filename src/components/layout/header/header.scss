@@ -4,7 +4,7 @@
 .app-header {
     &__account-settings {
         padding-inline-end: 1.2rem;
-        border-inline-end: 0.1rem solid var(--general-section-1);
+        border-inline-end: 0.1rem solid rgba(255,255,255,0.25);
     }
 
     &__account-settings,
@@ -12,8 +12,27 @@
     &__menu {
         svg > path,
         svg > g > path {
-            fill: var(--text-prominent);
+            fill: #ffffff;
         }
+    }
+}
+
+.deriv-header {
+    .deriv-text,
+    .dc-text {
+        color: #ffffff !important;
+    }
+
+    svg path {
+        fill: #ffffff;
+    }
+
+    button {
+        color: #ffffff;
+    }
+
+    .auth-actions button {
+        color: #1a2e44;
     }
 }
 

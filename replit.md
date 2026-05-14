@@ -90,3 +90,17 @@ Preferred communication style: Simple, everyday language.
 - Responsive card design with hover effects and loading states
 - Bot XML files stored in `/public/bots/` directory
 - Files: `src/pages/free-bots/index.tsx`, `src/pages/free-bots/free-bots.scss`
+
+### AHMEDSYNTRADER Branding & Feature Expansion (May 2026)
+- Futuristic splash/loading screen: dark navy background, glowing circular ring, AHMED logo, cyan AHMEDSYNTRADER title, circular progress ring, animated glow effects (`src/pages/splash/`)
+- Header background changed to deep green gradient (`src/components/layout/layout.scss`)
+- Logo copied to `public/ahmed-logo.png` for use in splash screen
+- New navigation tabs added to main trading interface:
+  - 🤖 Trading Bots — 12 AI bot cards with category filters, live/stop controls
+  - 📋 Strategies — 8 trading strategies (Martingale, Fibonacci, D'Alembert, etc.) with expandable details
+  - 🧮 Risk Calculator — functional calculator (EV, risk of ruin, martingale analysis)
+  - 👥 Copy Trading — token-based trade replication with start/stop controls
+  - 📈 DTrader — Deriv-style trade interface (Accumulators, Turbos, Multipliers, Vanillas)
+  - 📊 TradingView — embedded Deriv charts from https://charts.deriv.com/deriv
+- AI Trading Assistant: floating purple chat bubble (bottom-right) with market analysis, strategy tips, risk advice
+- Files: `src/pages/trading-bots/`, `src/pages/strategies/`, `src/pages/risk-calculator/`, `src/pages/copy-trading/`, `src/pages/dtrader/`, `src/pages/trading-view/`, `src/components/ai-assistant/`

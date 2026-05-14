@@ -12,6 +12,7 @@ import { handleOidcAuthFailure } from '@/utils/auth-utils';
 import { requestOidcAuthentication } from '@deriv-com/auth-client';
 import { useDevice } from '@deriv-com/ui';
 import { crypto_currencies_display_order, fiat_currencies_display_order } from '../shared';
+import AiAssistant from '@/components/ai-assistant';
 import Footer from './footer';
 import AppHeader from './header';
 import Body from './main-body';
@@ -246,6 +247,7 @@ const Layout = observer(() => {
             </Body>
             {!isCallbackPage && isDesktop && <Footer />}
             <PWAUpdateNotification />
+            {!isCallbackPage && <AiAssistant />}
         </div>
     );
 });

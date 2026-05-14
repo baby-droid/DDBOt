@@ -1,0 +1,160 @@
+.copy-trading {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    color: var(--text-prominent, #1a2e44);
+
+    &__header {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    &__mode-btn {
+        padding: 0.6rem 1.4rem;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background: transparent;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+
+        &--active {
+            background: #1a6b3a;
+            color: #fff;
+            border-color: #1a6b3a;
+        }
+    }
+
+    &__tutorial-btn {
+        padding: 0.6rem 1.4rem;
+        border-radius: 6px;
+        border: 1px solid #aaa;
+        background: transparent;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-left: auto;
+    }
+
+    &__id-bar {
+        background: #0d1f3c;
+        color: #fff;
+        padding: 0.8rem 1.2rem;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+    &__section {
+        background: rgba(255,255,255,0.7);
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        margin-bottom: 1.5rem;
+    }
+
+    &__section-title {
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+
+    &__token-row {
+        display: flex;
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    &__token-input {
+        flex: 1;
+        padding: 0.7rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        background: #0d1f3c;
+        color: #fff;
+
+        &::placeholder { color: rgba(255,255,255,0.4); }
+    }
+
+    &__add-btn {
+        padding: 0.7rem 1.4rem;
+        background: #1a6b3a;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    &__sync-btn {
+        padding: 0.7rem 1.2rem;
+        background: #0096ff;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    &__start-btn {
+        padding: 0.7rem 1.6rem;
+        background: #1a6b3a;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+        transition: background 0.2s;
+
+        &--running {
+            background: #c0392b;
+        }
+    }
+
+    &__stats {
+        padding: 0.8rem 1rem;
+        background: #0d1f3c;
+        border-radius: 6px;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    &__client-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 20px;
+        padding: 4px 12px;
+        margin: 4px;
+        font-size: 0.85rem;
+
+        button {
+            background: none;
+            border: none;
+            color: #f00;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+        }
+    }
+
+    &__info {
+        margin-top: 1rem;
+    }
+
+    &__info-card {
+        background: rgba(255,255,255,0.7);
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+
+        h4 { margin-bottom: 0.8rem; font-weight: 700; }
+        ol { padding-left: 1.2rem; line-height: 2; color: #555; }
+    }
+}

@@ -37,6 +37,12 @@ const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 const Tutorial = lazy(() => import('../tutorials'));
 const FreeBots = lazy(() => import('../free-bots'));
 const AnalysisTool = lazy(() => import('../analysis-tool'));
+const TradingBots = lazy(() => import('../trading-bots'));
+const Strategies = lazy(() => import('../strategies'));
+const RiskCalculator = lazy(() => import('../risk-calculator'));
+const CopyTrading = lazy(() => import('../copy-trading'));
+const DTrader = lazy(() => import('../dtrader'));
+const TradingViewPage = lazy(() => import('../trading-view'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -68,7 +74,7 @@ const AppWrapper = observer(() => {
     const { clear } = summary_card;
     const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool'];
+    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial', 'free_bots', 'analysis_tool', 'trading_bots', 'strategies', 'risk_calculator', 'copy_trading', 'dtrader', 'trading_view'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -398,6 +404,84 @@ const AppWrapper = observer(() => {
                                         <AnalysisTool />
                                     </Suspense>
                                 </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <span style={{ fontSize: '16px', marginRight: '4px' }}>🤖</span>
+                                        <Localize i18n_default_text='Trading Bots' />
+                                    </>
+                                }
+                                id='id-trading-bots'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Trading Bots...')} />}>
+                                    <TradingBots />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <span style={{ fontSize: '16px', marginRight: '4px' }}>📋</span>
+                                        <Localize i18n_default_text='Strategies' />
+                                    </>
+                                }
+                                id='id-strategies'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Strategies...')} />}>
+                                    <Strategies />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <span style={{ fontSize: '16px', marginRight: '4px' }}>🧮</span>
+                                        <Localize i18n_default_text='Risk Calculator' />
+                                    </>
+                                }
+                                id='id-risk-calculator'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Risk Calculator...')} />}>
+                                    <RiskCalculator />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <span style={{ fontSize: '16px', marginRight: '4px' }}>👥</span>
+                                        <Localize i18n_default_text='Copy Trading' />
+                                    </>
+                                }
+                                id='id-copy-trading'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Copy Trading...')} />}>
+                                    <CopyTrading />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <span style={{ fontSize: '16px', marginRight: '4px' }}>📈</span>
+                                        <Localize i18n_default_text='DTrader' />
+                                    </>
+                                }
+                                id='id-dtrader'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading DTrader...')} />}>
+                                    <DTrader />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <span style={{ fontSize: '16px', marginRight: '4px' }}>📊</span>
+                                        <Localize i18n_default_text='TradingView' />
+                                    </>
+                                }
+                                id='id-trading-view'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading TradingView...')} />}>
+                                    <TradingViewPage />
+                                </Suspense>
                             </div>
                         </Tabs>
                         {!isDesktop && right_tab_shadow && <span className='tabs-shadow tabs-shadow--right' />}{' '}
