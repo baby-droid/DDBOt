@@ -210,6 +210,12 @@
             background: rgba(0,212,170,0.15);
             border-color: #00d4aa;
         }
+
+        &--highlight {
+            background: linear-gradient(135deg, rgba(0,212,170,0.2), rgba(0,150,255,0.15));
+            border-color: #00d4aa;
+            font-weight: 700;
+        }
     }
 
     &__input-row {
@@ -255,6 +261,261 @@
 
         &:disabled { opacity: 0.4; cursor: not-allowed; }
         &:not(:disabled):hover { opacity: 0.9; }
+    }
+}
+
+// ── Market Analyzer ──────────────────────────────────────
+.ai-analyzer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    overflow-y: auto;
+    max-height: 460px;
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        color: #00d4aa;
+        font-size: 0.88rem;
+        letter-spacing: 0.04em;
+
+        button {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            font-size: 1.2rem;
+            cursor: pointer;
+            &:hover { color: #fff; }
+        }
+    }
+
+    &__hint {
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.4);
+        margin: 0;
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    &__digit {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 6px;
+        padding: 6px 4px;
+        border: 1px solid rgba(255,255,255,0.06);
+        transition: border-color 0.2s;
+
+        &--green {
+            border-color: rgba(0,212,170,0.4);
+            background: rgba(0,212,170,0.06);
+        }
+
+        &--red {
+            border-color: rgba(231,76,60,0.4);
+            background: rgba(231,76,60,0.06);
+        }
+    }
+
+    &__digit-label {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.7);
+    }
+
+    &__bar-tag {
+        font-size: 0.6rem;
+        background: #00d4aa;
+        color: #000;
+        border-radius: 2px;
+        padding: 0 3px;
+        font-weight: 800;
+
+        &--red { background: #e74c3c; color: #fff; }
+    }
+
+    &__input {
+        width: 100%;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 4px;
+        color: #fff;
+        font-size: 0.75rem;
+        padding: 3px 4px;
+        text-align: center;
+        outline: none;
+
+        &:focus { border-color: rgba(0,212,170,0.4); }
+    }
+
+    &__pct {
+        font-size: 0.65rem;
+        color: rgba(255,255,255,0.35);
+    }
+
+    &__bar-wrap {
+        width: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        height: 40px;
+    }
+
+    &__bar {
+        width: 8px;
+        border-radius: 2px 2px 0 0;
+        min-height: 2px;
+        transition: height 0.3s ease;
+    }
+
+    &__total {
+        font-size: 0.78rem;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    &__btn {
+        width: 100%;
+        padding: 0.7rem;
+        background: linear-gradient(135deg, #00a87a, #00d4aa);
+        border: none;
+        border-radius: 8px;
+        color: #000;
+        font-weight: 800;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+
+        &:hover { opacity: 0.9; }
+    }
+}
+
+// ── Recommendation Card ──────────────────────────────────
+.ai-rec-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(0,212,170,0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 6px;
+    font-size: 0.8rem;
+
+    &__header {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 10px;
+        cursor: pointer;
+        
+        &:hover { background: rgba(255,255,255,0.04); }
+
+        > div:first-child {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    }
+
+    &__trade {
+        font-weight: 800;
+        font-size: 0.92rem;
+        color: #fff;
+    }
+
+    &__conf {
+        font-size: 0.6rem;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 3px;
+        color: #000;
+        letter-spacing: 0.05em;
+    }
+
+    &__meta {
+        display: flex;
+        gap: 10px;
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.45);
+    }
+
+    &__entry {
+        padding: 4px 10px 8px;
+        color: rgba(255,255,255,0.6);
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    &__digit {
+        background: rgba(0,212,170,0.2);
+        color: #00d4aa;
+        border: 1px solid rgba(0,212,170,0.3);
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    &__detail {
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 8px 10px;
+    }
+
+    &__reason {
+        color: rgba(255,255,255,0.75);
+        font-size: 0.78rem;
+        line-height: 1.5;
+        margin-bottom: 8px;
+    }
+
+    &__conditions {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    &__cond {
+        font-size: 0.73rem;
+        color: #00d4aa;
+    }
+
+    &__warn {
+        font-size: 0.73rem;
+        color: #f5a623;
+    }
+}
+
+.ai-assistant__recs {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+// ── Message formatting ───────────────────────────────────
+.ai-assistant__msg-bubble {
+    p {
+        margin: 0 0 3px;
+        font-size: 0.84rem;
+        line-height: 1.45;
+
+        &:empty { display: none; }
+
+        strong { color: #00d4aa; font-weight: 700; }
     }
 }
 
