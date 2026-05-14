@@ -38,11 +38,15 @@ export const isTestLink = () => {
     return (
         window.location.origin?.includes('.binary.sx') ||
         window.location.origin?.includes('bot-65f.pages.dev') ||
-        isLocal()
+        isLocal() ||
+        isReplit()
     );
 };
 
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
+
+export const isReplit = () =>
+    /\.replit\.dev$|\.repl\.co$|\.replit\.app$/.test(window.location.hostname);
 
 const getDefaultServerURL = () => {
     if (isTestLink()) {

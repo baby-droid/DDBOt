@@ -258,6 +258,7 @@ const AppWrapper = observer(() => {
                         });
                     } catch (err) {
                         handleOidcAuthFailure(err);
+                        window.location.replace(generateOAuthURL());
                     }
                 }
             } catch (error) {
