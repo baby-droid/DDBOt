@@ -1,74 +1,86 @@
 .dtrader {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 130px);
+    height: calc(100vh - 58px);
     overflow: hidden;
-    background: #f5f7fa;
-    font-family: 'Inter', sans-serif;
+    background: #f5f5f5;
+    font-family: 'IBM Plex Sans', 'Inter', sans-serif;
+    font-size: 14px;
 
-    &__market-selector {
+    // ── Market bar ────────────────────────────────────────
+    &__market-bar {
         position: relative;
         background: #fff;
-        border-bottom: 1px solid #e0e0e0;
-        z-index: 10;
+        border-bottom: 1px solid #e8e8e8;
+        z-index: 20;
     }
 
     &__market-header {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        padding: 0.8rem 1.2rem;
+        gap: 10px;
+        padding: 8px 16px;
         cursor: pointer;
+        user-select: none;
+        width: fit-content;
 
-        &:hover { background: #f0f0f0; }
+        &:hover { background: #f9f9f9; }
     }
 
-    &__market-icon {
-        font-size: 1.6rem;
+    &__market-spark {
+        flex-shrink: 0;
+    }
+
+    &__market-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
 
     &__market-name {
         font-weight: 700;
-        font-size: 0.95rem;
-        color: #1a2e44;
+        font-size: 0.92rem;
+        color: #1a1a1a;
     }
 
     &__market-price {
-        font-size: 0.85rem;
-        color: #666;
+        font-size: 0.82rem;
+        color: #555;
     }
 
-    &__market-change {
-        &--neg { color: #e74c3c; }
-        &--pos { color: #27ae60; }
+    &__market-delta {
+        &.pos { color: #27ae60; }
+        &.neg { color: #e74c3c; }
     }
 
     &__chevron {
-        margin-left: auto;
-        color: #888;
+        font-size: 0.7rem;
+        color: #999;
+        margin-left: 4px;
     }
 
     &__market-dropdown {
         position: absolute;
         top: 100%;
         left: 0;
-        width: 300px;
+        width: 280px;
         background: #fff;
         border: 1px solid #e0e0e0;
+        border-top: none;
         border-radius: 0 0 8px 8px;
-        max-height: 280px;
+        max-height: 300px;
         overflow-y: auto;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-        z-index: 100;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     }
 
     &__market-item {
-        padding: 0.6rem 1.2rem;
+        padding: 8px 16px;
         cursor: pointer;
-        font-size: 0.88rem;
+        font-size: 0.86rem;
         color: #333;
+        border-bottom: 1px solid #f5f5f5;
 
-        &:hover { background: #f0f4ff; }
+        &:hover { background: #f0f5ff; }
 
         &--active {
             background: #1a6b3a;
@@ -76,218 +88,492 @@
         }
     }
 
-    &__main {
+    // ── Body layout ──────────────────────────────────────
+    &__body {
         display: flex;
         flex: 1;
         overflow: hidden;
     }
 
-    &__chart-area {
+    // ── Chart area ───────────────────────────────────────
+    &__chart-wrap {
         flex: 1;
+        display: flex;
+        flex-direction: column;
         position: relative;
         background: #fff;
-        border-right: 1px solid #e0e0e0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    &__chart-placeholder {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        background: linear-gradient(135deg, #f8fffe 0%, #f0f9f5 100%);
-    }
-
-    &__chart-line {
-        width: 80%;
-        height: 120px;
-        background: linear-gradient(to right, 
-            transparent 0%, #27ae60 10%, #27ae60 15%, #e74c3c 20%, #27ae60 30%, 
-            #27ae60 40%, #e74c3c 50%, #27ae60 60%, #27ae60 70%, #e74c3c 80%, 
-            #27ae60 90%, #27ae60 100%);
-        opacity: 0.3;
-        clip-path: polygon(0 80%, 5% 60%, 10% 70%, 15% 40%, 20% 55%, 25% 30%, 30% 45%, 35% 20%, 40% 35%, 45% 50%, 50% 25%, 55% 40%, 60% 15%, 65% 30%, 70% 45%, 75% 20%, 80% 35%, 85% 10%, 90% 25%, 95% 40%, 100% 20%, 100% 100%, 0 100%);
-    }
-
-    &__chart-label {
-        color: #999;
-        font-size: 0.85rem;
+        border-right: 1px solid #e8e8e8;
+        min-width: 0;
     }
 
     &__chart-tools {
-        display: flex;
-        flex-direction: column;
         position: absolute;
         left: 8px;
         top: 50%;
         transform: translateY(-50%);
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
         gap: 4px;
     }
 
-    &__chart-tool-btn {
-        width: 32px;
-        height: 32px;
+    &__tool-btn {
+        width: 30px;
+        height: 30px;
+        background: rgba(255,255,255,0.9);
         border: 1px solid #ddd;
-        background: #fff;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 
-        &:hover { background: #f0f4ff; }
+        &:hover { background: #f0f4ff; border-color: #999; }
     }
 
-    &__trade-panel {
-        width: 220px;
+    &__chart-frame {
+        flex: 1;
+        width: 100%;
+        border: none;
+        min-height: 0;
+    }
+
+    &__chart-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 12px;
         background: #fff;
-        border-right: 1px solid #e0e0e0;
+        border-top: 1px solid #eee;
+        font-size: 0.72rem;
+        color: #888;
+    }
+
+    &__risk-badge {
+        background: #f5c518;
+        color: #333;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 3px;
+    }
+
+    &__chart-time {
+        font-variant-numeric: tabular-nums;
+    }
+
+    // ── Trade types panel (middle) ────────────────────────
+    &__types-panel {
+        width: 220px;
+        flex-shrink: 0;
+        background: #fff;
+        border-right: 1px solid #e8e8e8;
         display: flex;
         flex-direction: column;
-        overflow-y: auto;
-        padding: 1rem;
+        overflow: hidden;
     }
 
-    &__panel-title {
+    &__types-header {
+        padding: 12px 16px 6px;
+        border-bottom: 1px solid #eee;
+    }
+
+    &__types-title {
         font-weight: 700;
-        font-size: 0.95rem;
-        color: #1a2e44;
-        margin-bottom: 0.8rem;
+        font-size: 0.92rem;
+        color: #1a1a1a;
+    }
+
+    &__search-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+    }
+
+    &__search-icon {
+        font-size: 0.8rem;
+        color: #aaa;
+    }
+
+    &__search {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 0.85rem;
+        color: #333;
+        background: transparent;
+
+        &::placeholder { color: #bbb; }
     }
 
     &__filters {
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        margin-bottom: 1rem;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
     }
 
     &__filter-btn {
-        padding: 0.4rem 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 16px;
         border: none;
         background: transparent;
         cursor: pointer;
         text-align: left;
-        font-size: 0.85rem;
-        border-radius: 4px;
-        color: #555;
+        font-size: 0.86rem;
+        color: #444;
 
-        &:hover { background: #f0f0f0; }
+        &:hover { background: #f5f5f5; }
 
         &--active {
-            background: #e8f4fd;
+            background: #f0f5ff;
             color: #0066cc;
             font-weight: 600;
+            border-left: 3px solid #0066cc;
+            padding-left: 13px;
         }
     }
 
-    &__trade-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    &__trade-group-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: 0.4rem 0.4rem 0.2rem;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    &__badge {
+    &__new-badge {
         background: #e74c3c;
         color: #fff;
         font-size: 0.6rem;
         padding: 1px 5px;
         border-radius: 3px;
         font-weight: 700;
+        letter-spacing: 0.03em;
     }
 
-    &__trade-item {
-        padding: 0.5rem 0.8rem;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.88rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #333;
-
-        &:hover { background: #f0f0f0; }
-
-        &--active {
-            background: #1a6b3a;
-            color: #fff;
-        }
-    }
-
-    &__trade-icon { font-size: 1rem; }
-
-    &__config-panel {
-        width: 220px;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        overflow-y: auto;
-        padding: 1rem;
-    }
-
-    &__config-title {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #1a2e44;
-        margin-bottom: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+    &__learn-row {
+        padding: 8px 16px;
+        border-bottom: 1px solid #eee;
     }
 
     &__learn-link {
-        font-size: 0.75rem;
-        font-weight: 400;
+        font-size: 0.78rem;
         color: #0066cc;
         text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        &:hover { text-decoration: underline; }
     }
 
-    &__config-row {
+    &__trade-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+    }
+
+    &__trade-group {
+        padding: 10px 16px 4px;
+        font-size: 0.73rem;
+        font-weight: 700;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &__trade-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 0.86rem;
+        color: #333;
+
+        &:hover { background: #f5f5f5; }
+
+        &--active {
+            background: #f0f5ff;
+            color: #0066cc;
+            font-weight: 600;
+            border-left: 3px solid #0066cc;
+            padding-left: 13px;
+        }
+    }
+
+    &__trade-icon {
+        font-size: 1rem;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    // ── Config panel (right) ──────────────────────────────
+    &__config-panel {
+        width: 240px;
+        flex-shrink: 0;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    &__config-header {
+        padding: 8px 14px 6px;
+        border-bottom: 1px solid #eee;
         display: flex;
         flex-direction: column;
         gap: 6px;
-        margin-bottom: 1rem;
-
-        label {
-            font-size: 0.82rem;
-            color: #555;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        input[type='range'] { width: 100%; accent-color: #1a6b3a; }
     }
 
-    &__rate-btns {
+    &__config-learn {
+        font-size: 0.73rem;
+        color: #0066cc;
+        text-decoration: none;
+        text-align: right;
+
+        &:hover { text-decoration: underline; }
+    }
+
+    &__config-trade-label {
         display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__config-icon {
+        font-size: 1rem;
+        color: #555;
+    }
+
+    &__config-name {
+        font-weight: 700;
+        font-size: 0.92rem;
+        color: #1a1a1a;
+    }
+
+    &__config-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    // ── Fields ────────────────────────────────────────────
+    &__field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        label {
+            font-size: 0.78rem;
+            color: #666;
+            font-weight: 600;
+        }
+    }
+
+    &__stake-field {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: -6px;
+    }
+
+    &__payout-label {
+        font-size: 0.78rem;
+        color: #666;
+        font-weight: 600;
+    }
+
+    // ── Ticks slider ─────────────────────────────────────
+    &__ticks-slider {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        input[type='range'] {
+            width: 100%;
+            accent-color: #ff6444;
+            height: 4px;
+        }
+    }
+
+    &__ticks-dots {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 2px;
+    }
+
+    &__ticks-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ddd;
+
+        &--fill { background: #ff6444; }
+    }
+
+    &__ticks-val {
+        font-size: 0.78rem;
+        color: #555;
+        font-weight: 600;
+        text-align: center;
+        margin-top: 2px;
+    }
+
+    &__range {
+        width: 100%;
+        accent-color: #ff6444;
+    }
+
+    // ── Digit grid ────────────────────────────────────────
+    &__digit-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
         gap: 4px;
     }
 
-    &__rate-btn {
+    &__digit-btn {
+        padding: 8px 0;
+        border: 1px solid #e0e0e0;
+        background: #f8f8f8;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: #333;
+        text-align: center;
+        transition: all 0.15s;
+
+        &:hover { border-color: #999; background: #f0f0f0; }
+
+        &--active {
+            background: #333;
+            color: #fff;
+            border-color: #333;
+        }
+    }
+
+    // ── Stake row ─────────────────────────────────────────
+    &__stake-row {
+        display: flex;
+        align-items: center;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    &__stake-btn {
+        width: 36px;
+        height: 36px;
+        border: none;
+        background: #f5f5f5;
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #555;
+        flex-shrink: 0;
+
+        &:hover { background: #ebebeb; }
+    }
+
+    &__stake-input {
         flex: 1;
-        padding: 4px;
+        border: none;
+        outline: none;
+        font-size: 0.92rem;
+        font-weight: 700;
+        text-align: center;
+        color: #1a1a1a;
+        background: transparent;
+        min-width: 0;
+    }
+
+    &__stake-currency {
+        font-size: 0.75rem;
+        color: #888;
+        padding-right: 8px;
+        flex-shrink: 0;
+    }
+
+    // ── Payout info ───────────────────────────────────────
+    &__payout-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.78rem;
+        color: #555;
+        margin-bottom: 4px;
+
+        strong { color: #1a1a1a; }
+    }
+
+    &__info-icon {
+        color: #bbb;
+        font-size: 0.72rem;
+        cursor: help;
+    }
+
+    &__payout-over, &__payout-under {
+        display: flex;
+        flex-direction: column;
+    }
+
+    // ── Over / Under buttons ─────────────────────────────
+    &__over-btn, &__under-btn {
+        width: 100%;
+        padding: 10px 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: opacity 0.15s;
+
+        &:hover { opacity: 0.88; }
+        &:active { transform: scale(0.98); }
+    }
+
+    &__over-btn {
+        background: #27ae60;
+        color: #fff;
+    }
+
+    &__under-btn {
+        background: #e74c3c;
+        color: #fff;
+    }
+
+    &__pct {
+        font-size: 0.85rem;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    // ── Rate / Multiplier buttons ─────────────────────────
+    &__rate-btns, &__multiplier-btns {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    &__rate-btn, &__mult-btn {
+        flex: 1;
+        min-width: 36px;
+        padding: 5px 4px;
         border: 1px solid #ddd;
         background: #f8f8f8;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-align: center;
 
         &--active {
             background: #1a6b3a;
@@ -296,71 +582,21 @@
         }
     }
 
-    &__stake-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        button {
-            width: 28px;
-            height: 28px;
-            border: 1px solid #ddd;
-            background: #f8f8f8;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 700;
-        }
-    }
-
-    &__stake-value {
-        flex: 1;
-        text-align: center;
-        font-weight: 700;
-        font-size: 1rem;
-
-        small { font-size: 0.7rem; color: #888; }
-    }
-
+    // ── Meta info ─────────────────────────────────────────
     &__meta {
-        margin-bottom: 1rem;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         color: #555;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        overflow: hidden;
 
         div {
             display: flex;
             justify-content: space-between;
-            padding: 4px 0;
+            padding: 6px 10px;
             border-bottom: 1px solid #f0f0f0;
+
+            &:last-child { border-bottom: none; }
         }
-    }
-
-    &__select {
-        padding: 0.5rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        background: #f8f8f8;
-    }
-
-    &__buy-btn {
-        width: 100%;
-        padding: 0.9rem;
-        background: #1a6b3a;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 700;
-        margin-top: auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: background 0.2s;
-
-        &:hover { background: #155c30; }
-        &:active { transform: scale(0.98); }
     }
 }
