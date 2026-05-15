@@ -1,10 +1,14 @@
 /**
- * AHMED THE TRADER — AI Brain
- * Built from "Ahmed The Trader" digit psychology methodology.
- * Covers: Over/Under rules, entry points, tick selection, digit distribution analysis.
+ * AHMED THE TRADER — AI Brain v2
+ * Sources:
+ *  • Ahmed The Trader PDF — Over 0–7 rules, entry points, tick framework
+ *  • Deriv Digit Correlation & Tick Psychology Research PDF
+ *  • Markets of Under PDF — Under 5–9 exact rules
+ *
+ * NOTE: Green bar = HIGHEST frequency digit. Red bar = LOWEST frequency digit.
  */
 
-export type DigitFreq = { [digit: number]: number }; // digit → percentage (0–100)
+export type DigitFreq = { [digit: number]: number };
 
 export type TradeRecommendation = {
     trade: string;
@@ -15,23 +19,30 @@ export type TradeRecommendation = {
     warnings: string[];
     reason: string;
     market: string;
+    riskLevel: 'Low' | 'Medium' | 'High';
 };
 
-// ─────────────────────────────────────────────
-// RULE ENGINE — based on Ahmed's PDF methodology
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────
 
-function mostFreqDigit(freq: DigitFreq, digits: number[]): number {
-    return digits.reduce((a, b) => (freq[a] ?? 0) >= (freq[b] ?? 0) ? a : b);
+function sortedByFreq(freq: DigitFreq): [number, number][] {
+    return Object.entries(freq)
+        .map(([d, v]) => [+d, +v] as [number, number])
+        .sort((a, b) => b[1] - a[1]);
 }
 
-function highestBar(freq: DigitFreq): number {
-    return Object.entries(freq).reduce((a, b) => +b[1] > +freq[+a[0]] ? b : a)[0] as unknown as number;
+export function greenBar(freq: DigitFreq): number {
+    return sortedByFreq(freq)[0][0]; // highest %
 }
 
-function secondHighestBar(freq: DigitFreq): number {
-    const sorted = Object.entries(freq).sort((a, b) => +b[1] - +a[1]);
-    return +(sorted[1]?.[0] ?? 0);
+export function redBar(freq: DigitFreq): number {
+    const sorted = sortedByFreq(freq);
+    return sorted[sorted.length - 1][0]; // lowest %
+}
+
+function secondHighest(freq: DigitFreq): number {
+    return sortedByFreq(freq)[1][0];
 }
 
 function allBelow(freq: DigitFreq, digits: number[], threshold: number): boolean {
@@ -45,553 +56,623 @@ function countBelow(freq: DigitFreq, digits: number[], threshold: number): numbe
 function isOdd(n: number): boolean { return n % 2 !== 0; }
 function isEven(n: number): boolean { return n % 2 === 0; }
 
-export function analyzeDigits(freq: DigitFreq): TradeRecommendation[] {
+function aboveThreshold(freq: DigitFreq, digit: number, threshold: number): boolean {
+    return (freq[digit] ?? 0) >= threshold;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CORRELATION DETECTION
+// ─────────────────────────────────────────────────────────────────
+
+export type MarketPattern = 'HIGH_DIGIT_EXHAUSTION' | 'LOW_DIGIT_EXHAUSTION' | 'STAIRCASE_UP' | 'VELOCITY_TRAP' | 'BALANCED' | 'MIXED';
+
+export function detectPattern(freq: DigitFreq): { pattern: MarketPattern; description: string } {
+    const highPressure = [7, 8, 9].reduce((s, d) => s + (freq[d] ?? 0), 0);
+    const lowPressure = [0, 1, 2].reduce((s, d) => s + (freq[d] ?? 0), 0);
+    const midPressure = [3, 4, 5, 6].reduce((s, d) => s + (freq[d] ?? 0), 0);
+
+    const hot89 = [8, 9].filter(d => (freq[d] ?? 0) >= 13).length;
+    const hot789 = [7, 8, 9].filter(d => (freq[d] ?? 0) >= 12).length;
+    const exhausted012 = [0, 1, 2].filter(d => (freq[d] ?? 0) <= 7).length;
+
+    if (hot89 >= 2 || (hot789 >= 2 && highPressure > 36)) {
+        return { pattern: 'VELOCITY_TRAP', description: 'Fast 7-8-9 clustering — velocity trap. UNDER 6 setup forming.' };
+    }
+    if (highPressure > 35 && lowPressure < 22) {
+        return { pattern: 'HIGH_DIGIT_EXHAUSTION', description: 'High digits (7,8,9) overheating. Mirror reversal into 0-2 expected. Look for UNDER 6-7.' };
+    }
+    if (lowPressure > 35 && highPressure < 22) {
+        return { pattern: 'LOW_DIGIT_EXHAUSTION', description: 'Low digits (0,1,2) exhausted. Reversal up expected. Look for OVER 3-4.' };
+    }
+    if (midPressure > 45 && Math.abs(highPressure - lowPressure) < 5) {
+        return { pattern: 'STAIRCASE_UP', description: 'Mid-range digits (3-6) dominant — momentum continuation. OVER 5 staircase setup possible.' };
+    }
+    if (Math.abs(highPressure - lowPressure) < 6 && Math.abs(highPressure - midPressure) < 6) {
+        return { pattern: 'BALANCED', description: 'Market is balanced — no strong directional pressure. Wait for imbalance before trading.' };
+    }
+    return { pattern: 'MIXED', description: 'Mixed signals. Observe 10 more ticks before entering.' };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// OVER RULE ENGINE (Over 0 – Over 7)
+// ─────────────────────────────────────────────────────────────────
+
+function analyzeOver(freq: DigitFreq): TradeRecommendation[] {
     const results: TradeRecommendation[] = [];
+    const gb = greenBar(freq);
+    const rb = redBar(freq);
 
-    const greenBar = highestBar(freq);   // highest frequency = green bar
-    const redBar = secondHighestBar(freq); // second highest = red bar
-
-    // ── OVER 0 ── (~90% probability, 1 tick)
+    // ── OVER 0 (1 tick, Low risk) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
         if ((freq[0] ?? 0) < 10) conds.push('✅ Digit 0 below 10%');
-        else { warns.push('⚠️ Digit 0 is ≥10% — avoid OVER 0'); ok = false; }
-
-        if (greenBar === 0 || redBar === 0) { warns.push('⚠️ Green or red bar is at digit 0 — avoid'); ok = false; }
-        else conds.push('✅ Green/red bar not at digit 0');
-
-        if (isEven(greenBar)) conds.push(`✅ Green bar at even digit ${greenBar}`);
-        else warns.push(`⚠️ Green bar should be at even digit (currently ${greenBar})`);
-
-        if (ok && isEven(greenBar)) {
-            results.push({
-                trade: 'OVER 0',
-                entryDigits: [0],
-                ticks: 1,
-                confidence: 'HIGH',
-                conditions: conds,
-                warnings: warns,
-                reason: 'Digit 0 is cold (<10%), green bar at even digit. Wait for cursor to land on digit 0 and confirm it is constant (not rising/falling) before clicking OVER.',
-                market: 'Volatility 10 (1s) Index',
-            });
-        }
+        else { warns.push('⚠️ Digit 0 must be below 10%'); ok = false; }
+        if (gb === 0 || rb === 0) { warns.push('⚠️ Green/red bar at digit 0 — avoid'); ok = false; }
+        else conds.push('✅ No green/red bar at digit 0');
+        if (isEven(gb)) conds.push(`✅ Green bar at even digit ${gb}`);
+        else warns.push(`⚠️ Green bar should be at even digit (currently ${gb})`);
+        if (ok && isEven(gb)) results.push({ trade: 'OVER 0', entryDigits: [0], ticks: 1, confidence: 'HIGH', conditions: conds, warnings: warns, reason: 'Digit 0 is cold (<10%), green bar at even digit. Wait for cursor to hit digit 0 and confirm it is stable before clicking OVER.', market: 'Volatility 10 (1s) Index', riskLevel: 'Low' });
     }
 
-    // ── OVER 1 ── (~80% probability, 1–2 ticks)
+    // ── OVER 1 (1–2 ticks, Low risk — STRONG OVER) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
-        if (allBelow(freq, [0, 1], 10)) conds.push('✅ Digits 0 and 1 both below 10%');
+        if (allBelow(freq, [0, 1], 10)) conds.push('✅ Digits 0 & 1 both below 10%');
         else { warns.push('⚠️ Digits 0 and 1 must both be below 10%'); ok = false; }
-
-        if (greenBar === 0 || greenBar === 1 || redBar === 0 || redBar === 1)
-            { warns.push('⚠️ Green/red bar at digits 0 or 1 — avoid'); ok = false; }
+        if (gb === 0 || gb === 1 || rb === 0 || rb === 1) { warns.push('⚠️ Green/red bar at digits 0 or 1 — avoid'); ok = false; }
         else conds.push('✅ Green/red bar not at 0 or 1');
-
-        if (isOdd(greenBar)) conds.push(`✅ Green bar at odd digit ${greenBar}`);
-        else warns.push(`⚠️ Green bar should be at odd digit (currently ${greenBar})`);
-
-        if (ok && isOdd(greenBar)) {
-            results.push({
-                trade: 'OVER 1',
-                entryDigits: [1],
-                ticks: 2,
-                confidence: 'HIGH',
-                conditions: conds,
-                warnings: warns,
-                reason: 'Digits 0 & 1 are cold. Green bar on odd digit. Entry: wait for cursor to hit digit 1 — confirm digits 0 and 1 are not increasing or decreasing before clicking OVER.',
-                market: 'Volatility 10 (1s) Index',
-            });
-        }
+        if (isOdd(gb)) conds.push(`✅ Green bar at odd digit ${gb}`);
+        else warns.push(`⚠️ Green bar should be at odd digit`);
+        if (ok && isOdd(gb)) results.push({ trade: 'OVER 1 ⭐', entryDigits: [1], ticks: 2, confidence: 'HIGH', conditions: conds, warnings: warns, reason: 'STRONG OVER setup. Digits 0 & 1 cold, green bar on odd digit. Entry: cursor hits digit 1, confirm digits 0 & 1 are constant. 1–2 ticks safest. Best for Volatility 10 (1s).', market: 'Volatility 10 (1s) Index', riskLevel: 'Low' });
     }
 
-    // ── OVER 2 ── (~70–80% probability, 2–3 ticks)
+    // ── OVER 2 (2–4 ticks, Medium) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
         if (allBelow(freq, [0, 1, 2], 10)) conds.push('✅ Digits 0, 1, 2 all below 10%');
         else { warns.push('⚠️ Digits 0, 1, 2 must all be below 10%'); ok = false; }
-
-        if ([0, 1, 2].includes(greenBar) || [0, 1, 2].includes(redBar))
-            { warns.push('⚠️ Avoid green/red bar at digits 0, 1, or 2'); ok = false; }
+        if ([0, 1, 2].includes(gb) || [0, 1, 2].includes(rb)) { warns.push('⚠️ Avoid green/red bar at digits 0–2'); ok = false; }
         else conds.push('✅ No green/red bar at digits 0–2');
-
-        if (isEven(greenBar)) conds.push(`✅ Green bar at even digit ${greenBar}`);
+        if (isEven(gb)) conds.push(`✅ Green bar at even digit ${gb}`);
         else warns.push(`⚠️ Green bar should be at even digit`);
-
-        const closeLook = [0, 1, 2].some(d => {
-            const v = freq[d] ?? 0;
-            return v > 5 && v < 10;
-        });
-        if (closeLook) conds.push('✅ Digits 0–2 appear stable in range');
-
-        if (ok && isEven(greenBar)) {
-            results.push({
-                trade: 'OVER 2',
-                entryDigits: [0, 2],
-                ticks: 3,
-                confidence: 'HIGH',
-                conditions: conds,
-                warnings: warns,
-                reason: 'Digits 0, 1, 2 all cold (<10%), green bar on even digit. Entry: cursor hits digit 0 or 2 — confirm those digits are constant (not moving up or down) then click OVER. Use 2–3 ticks.',
-                market: 'Volatility 25 (1s) Index',
-            });
-        }
+        if (ok && isEven(gb)) results.push({ trade: 'OVER 2', entryDigits: [0, 2], ticks: 3, confidence: 'HIGH', conditions: conds, warnings: warns, reason: 'Digits 0,1,2 cold. Green bar on even digit. Entry: cursor hits 0 or 2, confirm constant. 2–4 ticks.', market: 'Volatility 25 (1s) Index', riskLevel: 'Medium' });
     }
 
-    // ── OVER 3 ── (2–3 ticks)
+    // ── OVER 3 (2–4 ticks, Medium — STRONG OVER) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
         if (allBelow(freq, [0, 1, 2, 3], 10)) conds.push('✅ Digits 0–3 all below 10%');
-        else { warns.push('⚠️ Digits 0, 1, 2, 3 must all be below 10%'); ok = false; }
-
-        if ([0, 1, 2, 3].includes(greenBar) || [0, 1, 2, 3].includes(redBar))
-            { warns.push('⚠️ Avoid green/red bar at digits 0–3'); ok = false; }
-        else conds.push('✅ No green/red bar at digits 0–3');
-
-        if (isOdd(greenBar) && isOdd(redBar)) conds.push(`✅ Green bar (${greenBar}) and red bar (${redBar}) both at odd digits`);
-        else warns.push('⚠️ Both green and red bars should be at odd digits');
-
-        if (ok && isOdd(greenBar) && isOdd(redBar)) {
-            results.push({
-                trade: 'OVER 3',
-                entryDigits: [1, 3],
-                ticks: 3,
-                confidence: 'MEDIUM',
-                conditions: conds,
-                warnings: warns,
-                reason: 'Digits 0–3 all cold. Green & red bars at odd digits. Entry: cursor hits digit 1 or 3 — make sure those highlighted digits are constant before clicking OVER. Use 2–3 ticks.',
-                market: 'Volatility 25 (1s) Index',
-            });
-        }
+        else { warns.push('⚠️ Digits 0–3 must all be below 10%'); ok = false; }
+        if ([0, 1, 2, 3].includes(gb) || [0, 1, 2, 3].includes(rb)) { warns.push('⚠️ No green/red bar at digits 0–3'); ok = false; }
+        else conds.push('✅ Green/red bar not at digits 0–3');
+        if (isOdd(gb) && isOdd(rb)) conds.push(`✅ Green (${gb}) and red (${rb}) bars at odd digits`);
+        else warns.push('⚠️ Both green and red bars must be at odd digits');
+        if (ok && isOdd(gb) && isOdd(rb)) results.push({ trade: 'OVER 3 ⭐', entryDigits: [1, 3], ticks: 3, confidence: 'MEDIUM', conditions: conds, warnings: warns, reason: 'STRONG OVER. Digits 0–3 cold. Green & red at odd digits. Entry: cursor hits 1 or 3, constant. 2–4 ticks.', market: 'Volatility 25 (1s) Index', riskLevel: 'Medium' });
     }
 
-    // ── OVER 4 ── (3–5 ticks)
+    // ── OVER 4 (3–4 ticks, Medium — STRONG OVER) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
-        const below4Count = countBelow(freq, [0, 1, 2, 3, 4], 10);
-        if (below4Count >= 3) conds.push(`✅ ${below4Count} of digits 0–4 below 10%`);
+        const belowCount = countBelow(freq, [0, 1, 2, 3, 4], 10);
+        if (belowCount >= 3) conds.push(`✅ ${belowCount} of digits 0–4 below 10%`);
         else { warns.push('⚠️ At least 3 of digits 0–4 must be below 10%'); ok = false; }
-
-        if ([0, 1, 2, 3, 4].includes(greenBar) || [0, 1, 2, 3, 4].includes(redBar))
-            { warns.push('⚠️ Avoid green/red bar at digits 0–4'); ok = false; }
+        if ([0, 1, 2, 3, 4].includes(gb) || [0, 1, 2, 3, 4].includes(rb)) { warns.push('⚠️ Avoid green/red bar at digits 0–4'); ok = false; }
         else conds.push('✅ Green/red bar not at digits 0–4');
-
-        if (isEven(greenBar) && isEven(redBar)) conds.push(`✅ Green bar (${greenBar}) and red bar (${redBar}) both at even digits`);
+        if (isEven(gb) && isEven(rb)) conds.push(`✅ Green (${gb}) and red (${rb}) bars at even digits`);
         else warns.push('⚠️ Both green and red bars must be at EVEN digits');
-
-        if (ok && isEven(greenBar) && isEven(redBar)) {
-            results.push({
-                trade: 'OVER 4',
-                entryDigits: [2, 4],
-                ticks: 5,
-                confidence: 'MEDIUM',
-                conditions: conds,
-                warnings: warns,
-                reason: '3+ of digits 0–4 are cold. Green & red bars at even digits. Watch digits 0–4 closely for stability. Entry: cursor hits digit 2 or 4 — confirm those digits are not increasing or decreasing then click OVER. Use 5 ticks.',
-                market: 'Volatility 50 (1s) Index',
-            });
-        }
+        if (ok && isEven(gb) && isEven(rb)) results.push({ trade: 'OVER 4 ⭐', entryDigits: [2, 4], ticks: 4, confidence: 'MEDIUM', conditions: conds, warnings: warns, reason: 'STRONG OVER. Low-digit exhaustion. Entry: cursor hits 2 or 4, constant. 3–4 ticks. Also a strong entry after low-digit cluster (0,1,2 domination).', market: 'Volatility 50 (1s) Index', riskLevel: 'Medium' });
     }
 
-    // ── OVER 5 ── (~50%, 5 ticks)
+    // ── OVER 5 (2–3 ticks, High — aggressive momentum) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
-        const belowHalfCount = countBelow(freq, [0, 1, 2, 3, 4], 10);
-        if (belowHalfCount >= 3) conds.push(`✅ ${belowHalfCount} digits below 5 are under 10%`);
-        else { warns.push('⚠️ At least 3 of digits below 5 must be under 10%'); ok = false; }
-
-        if ([0, 1, 2, 3, 4].includes(greenBar) || [0, 1, 2, 3, 4].includes(redBar))
-            { warns.push('⚠️ Avoid green/red bar at digits below 5'); ok = false; }
+        const belowHalf = countBelow(freq, [0, 1, 2, 3, 4], 10);
+        if (belowHalf >= 3) conds.push(`✅ ${belowHalf} digits below 5 are under 10%`);
+        else { warns.push('⚠️ At least 3 digits below 5 must be under 10%'); ok = false; }
+        if ([0, 1, 2, 3, 4].includes(gb) || [0, 1, 2, 3, 4].includes(rb)) { warns.push('⚠️ Avoid green/red bar at digits 0–4'); ok = false; }
         else conds.push('✅ Green/red bar not at digits 0–4');
-
-        if (isOdd(greenBar) && isOdd(redBar)) conds.push(`✅ Green bar (${greenBar}) & red bar (${redBar}) at odd digits`);
+        if (isOdd(gb) && isOdd(rb)) conds.push(`✅ Green (${gb}) and red (${rb}) bars at odd digits`);
         else warns.push('⚠️ Green and red bars must both be at ODD digits');
-
-        if (ok && isOdd(greenBar) && isOdd(redBar)) {
-            results.push({
-                trade: 'OVER 5',
-                entryDigits: [1, 3, 5],
-                ticks: 5,
-                confidence: 'MEDIUM',
-                conditions: conds,
-                warnings: warns,
-                reason: 'Multiple low digits below threshold. Green & red at odd digits. Carefully watch digits below 5 for stability. Entry: cursor hits digit 1, 3, or 5 — ensure that highlighted digit is not rising or falling, then click OVER. Use 5 ticks.',
-                market: 'Volatility 50 (1s) Index',
-            });
-        }
+        if (ok && isOdd(gb) && isOdd(rb)) results.push({ trade: 'OVER 5', entryDigits: [1, 3, 5], ticks: 3, confidence: 'MEDIUM', conditions: conds, warnings: warns, reason: 'Aggressive momentum entry. Best used on staircase patterns (2→3→4→5→6). Entry: cursor hits 1, 3, or 5 — constant. 2–3 ticks.', market: 'Volatility 50 (1s) Index', riskLevel: 'High' });
     }
 
-    // ── OVER 6 ── (2–3 ticks)
+    // ── OVER 6 (2–3 ticks, High) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
-        if (greenBar === 8) conds.push('✅ Green bar at digit 8 (MUST — only even digit above 6)');
-        else { warns.push('⚠️ Green bar MUST be at digit 8 for OVER 6. Currently not met.'); ok = false; }
-
-        const redOnEvenBelow6 = isEven(redBar) && redBar < 6;
-        if (redOnEvenBelow6) conds.push(`✅ Red bar at even digit below 6 (digit ${redBar})`);
+        if (gb === 8) conds.push('✅ Green bar at digit 8 (must — only even digit above 6)');
+        else { warns.push(`⚠️ Green bar MUST be at digit 8 for OVER 6 (currently ${gb})`); ok = false; }
+        const redOnEvenBelow6 = isEven(rb) && rb < 6;
+        if (redOnEvenBelow6) conds.push(`✅ Red bar at even digit below 6 (digit ${rb})`);
         else warns.push('⚠️ Red bar should be on an even digit below 6');
-
         const above6Hot = [7, 8, 9].filter(d => (freq[d] ?? 0) >= 11).length;
-        if (above6Hot >= 2) conds.push(`✅ ${above6Hot} digits above 6 have 11%+ frequency`);
-        else warns.push('⚠️ Need at least 2 digits above 6 with 11%+ frequency');
-
+        if (above6Hot >= 2) conds.push(`✅ ${above6Hot} digits above 6 at 11%+`);
+        else warns.push('⚠️ Need 2+ digits above 6 at 11%+');
         if (ok) {
-            const entryDigit = mostFreqDigit(freq, [0, 2, 4]);
-            results.push({
-                trade: 'OVER 6',
-                entryDigits: [0, 2, 4],
-                ticks: 3,
-                confidence: 'HIGH',
-                conditions: conds,
-                warnings: warns,
-                reason: `Green bar at digit 8 confirms hot zone above 6. Entry: wait for moving cursor to land on digit ${entryDigit} (highest % among 0,2,4) — make sure remaining digits are constant, then run bot or click OVER. Use 2–3 ticks.`,
-                market: 'Volatility 75 (1s) Index',
-            });
+            const entryFreqs = [0, 2, 4].map(d => freq[d] ?? 0);
+            const bestEntry = [0, 2, 4][entryFreqs.indexOf(Math.max(...entryFreqs))];
+            results.push({ trade: 'OVER 6', entryDigits: [0, 2, 4], ticks: 3, confidence: 'HIGH', conditions: conds, warnings: warns, reason: `Green bar at 8 (dominant even above 6). Entry: cursor hits digit ${bestEntry} (highest % among 0,2,4) — confirm remaining digits are constant. 2–3 ticks.`, market: 'Volatility 75 (1s) Index', riskLevel: 'High' });
         }
     }
 
-    // ── OVER 7 ── (2–3 ticks)
+    // ── OVER 7 (2–3 ticks, High) ──
     {
-        const conds: string[] = [];
-        const warns: string[] = [];
+        const conds: string[] = [], warns: string[] = [];
         let ok = true;
-
-        if (greenBar === 9 || greenBar === 1) conds.push(`✅ Green bar at digit ${greenBar} (9 or 1 required)`);
-        else { warns.push('⚠️ Green bar must be at digit 9 or 1 for OVER 7'); ok = false; }
-
-        if (redBar === 5 || redBar === 3) conds.push(`✅ Red bar at digit ${redBar} (must be 5 or 3)`);
-        else warns.push(`⚠️ Red bar should be at digit 5 or 3 only (currently ${redBar})`);
-
-        const above7Increasing = [8, 9].some(d => (freq[d] ?? 0) >= 11);
-        if (above7Increasing) conds.push('✅ Digits above 7 showing strong frequency (≥11%)');
-        else warns.push('⚠️ Digits above 7 should be increasing rapidly');
-
+        if (gb === 9 || gb === 1) conds.push(`✅ Green bar at digit ${gb} (9 or 1 required)`);
+        else { warns.push(`⚠️ Green bar must be at digit 9 or 1 (currently ${gb})`); ok = false; }
+        if (rb === 5 || rb === 3) conds.push(`✅ Red bar at digit ${rb} (5 or 3 required)`);
+        else warns.push(`⚠️ Red bar must be 5 or 3 (currently ${rb})`);
+        const above7Strong = [8, 9].some(d => (freq[d] ?? 0) >= 11);
+        if (above7Strong) conds.push('✅ Digits 8/9 at 11%+ (rapidly increasing above 7)');
+        else warns.push('⚠️ Digits above 7 must be increasing rapidly');
         if (ok) {
-            const entryDigit = redBar === 5 || redBar === 3 ? redBar : 5;
-            results.push({
-                trade: 'OVER 7',
-                entryDigits: [redBar],
-                ticks: 3,
-                confidence: 'HIGH',
-                conditions: conds,
-                warnings: warns,
-                reason: `Strong signal above 7. Green at ${greenBar}, red at ${redBar}. Entry: wait for moving cursor to hit digit ${entryDigit} (the red bar digit) — confirm that at least one digit above 7 is still increasing, then run bot or click OVER. Use 2–3 ticks.`,
-                market: 'Volatility 100 (1s) Index',
-            });
+            const entryDigit = (rb === 5 || rb === 3) ? rb : 5;
+            results.push({ trade: 'OVER 7', entryDigits: [entryDigit], ticks: 3, confidence: 'HIGH', conditions: conds, warnings: warns, reason: `Green at ${gb}, red at ${rb}. Entry: cursor hits digit ${entryDigit} (red bar) — confirm at least one digit above 7 is still increasing. 2–3 ticks.`, market: 'Volatility 100 (1s) Index', riskLevel: 'High' });
         }
     }
 
     return results;
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// UNDER RULE ENGINE (Under 5 – Under 9) — from markets_of_under PDF
+// ─────────────────────────────────────────────────────────────────
+
+function analyzeUnder(freq: DigitFreq): TradeRecommendation[] {
+    const results: TradeRecommendation[] = [];
+
+    // ── UNDER 9 (1–2 ticks, Low — STRONG UNDER) ──
+    {
+        const conds: string[] = [], warns: string[] = [];
+        let ok = true;
+        if ((freq[9] ?? 0) < 10) conds.push('✅ Digit 9 below 10%');
+        else { warns.push('⚠️ Digit 9 must be below 10%'); ok = false; }
+        const gbVal = greenBar(freq), rbVal = redBar(freq);
+        if (gbVal === 9 || rbVal === 9) { warns.push('⚠️ Green/red bar at digit 9 — avoid'); ok = false; }
+        else conds.push('✅ No green/red bar at digit 9');
+        if (ok) results.push({ trade: 'UNDER 9 ⭐', entryDigits: [9, 0], ticks: 1, confidence: 'HIGH', conditions: conds, warnings: warns, reason: 'STRONG UNDER (safest). Digit 9 cold (<10%). Entry: cursor hits digit 9 or 0, confirm 9 is stable (not rising). Plain index: 1 tick. 1s index: 2 ticks.', market: 'Volatility 50 Index', riskLevel: 'Low' });
+    }
+
+    // ── UNDER 8 (2–3 ticks, Low) ──
+    {
+        const conds: string[] = [], warns: string[] = [];
+        let ok = true;
+        if (allBelow(freq, [8, 9], 10)) conds.push('✅ Digits 8 & 9 both below 10%');
+        else { warns.push('⚠️ Digits 8 and 9 must both be below 10%'); ok = false; }
+        if (aboveThreshold(freq, 7, 10.3)) conds.push(`✅ Digit 7 at ${(freq[7] ?? 0).toFixed(1)}% — acts as shield (need ≥10.3%)`);
+        else warns.push('⚠️ Digit 7 must be ≥10.3% to provide shield');
+        if (ok) {
+            const entryDigits: number[] = [];
+            if (aboveThreshold(freq, 7, 10.4)) { entryDigits.push(7); conds.push(`✅ Entry at digit 7 valid (${(freq[7] ?? 0).toFixed(1)}% ≥ 10.4%)`); }
+            if (aboveThreshold(freq, 4, 10.5)) { entryDigits.push(4); conds.push(`✅ Entry at digit 4 valid (${(freq[4] ?? 0).toFixed(1)}% ≥ 10.5%)`); }
+            if (aboveThreshold(freq, 6, 10.2)) { entryDigits.push(6); conds.push(`✅ Entry at digit 6 valid (${(freq[6] ?? 0).toFixed(1)}% ≥ 10.2%)`); }
+            entryDigits.push(9, 0, 1);
+            if (entryDigits.length > 3) results.push({ trade: 'UNDER 8', entryDigits: [...new Set(entryDigits)], ticks: 2, confidence: 'HIGH', conditions: conds, warnings: warns, reason: 'Digits 8 & 9 cold, digit 7 ≥10.3% provides shield. Entry: wait for cursor at entry digits listed. 2–3 ticks.', market: 'Volatility 50 Index', riskLevel: 'Low' });
+            else warns.push('⚠️ Insufficient valid entry digits — not enough shield strength');
+        }
+    }
+
+    // ── UNDER 7 (2–3 ticks, Medium) ──
+    {
+        const conds: string[] = [], warns: string[] = [];
+        let ok = true;
+        if (allBelow(freq, [7, 8, 9], 10)) conds.push('✅ Digits 7, 8, 9 all below 10%');
+        else { warns.push('⚠️ Digits 7, 8, 9 must all be below 10%'); ok = false; }
+        if (aboveThreshold(freq, 6, 10.3)) conds.push(`✅ Digit 6 at ${(freq[6] ?? 0).toFixed(1)}% — shield (need ≥10.3%)`);
+        else warns.push('⚠️ Digit 6 must be ≥10.3% to provide shield');
+        if (ok) {
+            const entryDigits: number[] = [];
+            if (aboveThreshold(freq, 7, 10.0)) { entryDigits.push(7); conds.push('✅ Digit 7 valid entry (above average)'); }
+            if (aboveThreshold(freq, 4, 10.5)) { entryDigits.push(4); conds.push(`✅ Digit 4 entry valid (${(freq[4] ?? 0).toFixed(1)}% ≥ 10.5%)`); }
+            if (aboveThreshold(freq, 6, 10.2)) { entryDigits.push(6); conds.push(`✅ Digit 6 entry valid`); }
+            entryDigits.push(9, 0, 1);
+            results.push({ trade: 'UNDER 7', entryDigits: [...new Set(entryDigits)], ticks: 3, confidence: 'MEDIUM', conditions: conds, warnings: warns, reason: 'Digits 7, 8, 9 cold. Digit 6 ≥10.3% acts as shield. Entry: cursor hits entry digits listed. 2–3 ticks.', market: 'Volatility 75 Index', riskLevel: 'Medium' });
+        }
+    }
+
+    // ── UNDER 6 (5 ticks, Medium — STRONG UNDER + exhaustion entry) ──
+    {
+        const conds: string[] = [], warns: string[] = [];
+        let ok = true;
+        if (allBelow(freq, [6, 7, 8, 9], 10)) conds.push('✅ Digits 6, 7, 8, 9 all below 10%');
+        else { warns.push('⚠️ Digits 6, 7, 8, 9 must all be below 10%'); ok = false; }
+        if (aboveThreshold(freq, 5, 10.3)) conds.push(`✅ Digit 5 at ${(freq[5] ?? 0).toFixed(1)}% — shield (need ≥10.3%)`);
+        else warns.push('⚠️ Digit 5 must be ≥10.3% to provide shield');
+        const highPressure = [7, 8, 9].reduce((s, d) => s + (freq[d] ?? 0), 0);
+        if (highPressure > 30) { conds.push(`✅ High-digit pressure detected (${highPressure.toFixed(1)}%) — velocity/exhaustion signal`); }
+        if (ok) {
+            const entryDigits: number[] = [];
+            if (aboveThreshold(freq, 7, 10.0)) entryDigits.push(7);
+            if (aboveThreshold(freq, 4, 10.5)) entryDigits.push(4);
+            if (aboveThreshold(freq, 6, 10.2)) entryDigits.push(6);
+            entryDigits.push(9, 0, 1);
+            results.push({ trade: 'UNDER 6 ⭐', entryDigits: [...new Set(entryDigits)], ticks: 5, confidence: 'HIGH', conditions: conds, warnings: warns, reason: 'STRONG UNDER. Digits 6–9 cold, digit 5 acts as shield. Also triggered by high-digit velocity trap (7,8,9 clustering). Entry: cursor hits listed digits. 5 ticks for exhaustion reversals.', market: 'Volatility 100 Index', riskLevel: 'Medium' });
+        }
+    }
+
+    // ── UNDER 5 (3–5 ticks, High) ──
+    {
+        const conds: string[] = [], warns: string[] = [];
+        let ok = true;
+        if (allBelow(freq, [5, 6, 7, 8, 9], 10)) conds.push('✅ Digits 5–9 all below 10%');
+        else { warns.push('⚠️ Digits 5–9 must all be below 10%'); ok = false; }
+        const shieldDigits = [0, 1, 2].filter(d => aboveThreshold(freq, d, 10.3));
+        if (shieldDigits.length >= 1) conds.push(`✅ Digits ${shieldDigits.join(',')} at 10.3%+ (shield)`);
+        else warns.push('⚠️ Digits 0, 1, or 2 must be ≥10.3% for shield');
+        if (ok) {
+            const entryDigits: number[] = [];
+            if (aboveThreshold(freq, 7, 10.0)) entryDigits.push(7);
+            if (aboveThreshold(freq, 4, 10.5)) entryDigits.push(4);
+            if (aboveThreshold(freq, 6, 10.2)) entryDigits.push(6);
+            entryDigits.push(9, 0, 1);
+            results.push({ trade: 'UNDER 5', entryDigits: [...new Set(entryDigits)], ticks: 5, confidence: 'MEDIUM', conditions: conds, warnings: warns, reason: 'Aggressive reversal. Digits 5–9 all cold, low digits (0,1,2) dominant as shield. Entry: cursor at listed digits. 3–5 ticks for full statistical distribution.', market: 'Volatility 100 (1s) Index', riskLevel: 'High' });
+        }
+    }
+
+    return results;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MAIN ANALYSIS FUNCTION
+// ─────────────────────────────────────────────────────────────────
+
+export function analyzeDigits(freq: DigitFreq): TradeRecommendation[] {
+    const overResults = analyzeOver(freq);
+    const underResults = analyzeUnder(freq);
+    const allResults = [...overResults, ...underResults];
+
+    // Sort: HIGH confidence first, then MEDIUM, LOW last
+    const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    allResults.sort((a, b) => order[a.confidence] - order[b.confidence]);
+
+    return allResults;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // CONVERSATIONAL KNOWLEDGE BASE
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 export function getKnowledgeResponse(input: string): string {
     const q = input.toLowerCase();
 
-    if (q.includes('tick') && (q.includes('how many') || q.includes('many tick') || q.includes('number of tick'))) {
-        return `📊 TICK SELECTION (Ahmed's Framework):
+    // ── Under strategies ──────────────────────────────────────────
+    if (q.includes('under 9')) {
+        return `🎯 UNDER 9 — Safest Setup (Low Risk)
 
-• **Over 0 / Under 9** (~90% probability) → Use **1 tick**
-  Immediate edge — avoid time exposure.
+**Conditions:**
+• Digit 9 must be below 10%
+• No green or red bar at digit 9
 
-• **Over 2 / Under 7** (~70–80%) → Use **2–3 ticks**
-  Allows momentum continuation — one bad digit, recovery opportunity.
+**Entry:** Cursor hits digit 9 or 0 — confirm digit 9 is constant (not rising)
 
-• **Over 5 / Under 5** (~50%) → Use **5 ticks**
-  Balanced probability — need multiple ticks for stats to play out.
+**Ticks:** 1 tick on plain indices (Vol 10, 25, 50, 75, 100) | 2 ticks on 1s indices
 
-More ticks = more time, more exposure. Less ticks = faster, more variance. Match your tick count to the probability of your contract.`;
+**Market:** Volatility 50 Index recommended
+
+⭐ This is a STRONG UNDER and the safest accumulation setup. High probability (~90%).`;
     }
 
+    if (q.includes('under 8')) {
+        return `🎯 UNDER 8 Strategy
+
+**Conditions:**
+• Digits 8 AND 9 must both be below 10%
+• Digit 7 must be ≥10.3% — this acts as a "shield"
+
+**Entry digits:** Wait for cursor at:
+→ Digit 7 (if 7 has 10.4%+)
+→ Digit 4 (if 4 has 10.5%+)
+→ Digit 6 (if 6 has 10.2%+)
+→ Or digits 9, 0, 1
+
+**Ticks:** 2–3 ticks
+**Market:** Volatility 50 Index`;
+    }
+
+    if (q.includes('under 7')) {
+        return `🎯 UNDER 7 Strategy (Medium Risk)
+
+**Conditions:**
+• Digits 7, 8, 9 must ALL be below 10%
+• Digit 6 must be ≥10.3% — acts as shield
+
+**Entry digits:**
+→ Digit 7 (above average), digit 4 (10.5%+), digit 6 (10.2%+)
+→ Also 9, 0, 1
+
+**Ticks:** 2–3 ticks
+**Market:** Volatility 75 Index`;
+    }
+
+    if (q.includes('under 6')) {
+        return `🎯 UNDER 6 — STRONG UNDER ⭐ (Medium Risk)
+
+**Conditions:**
+• Digits 6, 7, 8, 9 must ALL be below 10%
+• Digit 5 must be ≥10.3% — shield
+
+**Also triggered by:** High-digit velocity trap → last ticks: 7, 8, 9, 8, 7 → exhaustion imminent
+
+**Entry digits:** 7+, 4 (10.5%+), 6 (10.2%+), 9, 0, 1
+
+**Ticks:** 5 ticks — strongest for exhaustion reversals
+**Market:** Volatility 100 Index`;
+    }
+
+    if (q.includes('under 5')) {
+        return `🎯 UNDER 5 Strategy (High Risk)
+
+**Conditions:**
+• Digits 5, 6, 7, 8, 9 must ALL be below 10%
+• Digits 0, 1, or 2 must be ≥10.3% — shield
+
+**Entry digits:** 7+, 4 (10.5%+), 6 (10.2%+), 9, 0, 1
+
+**Ticks:** 3–5 ticks
+**Market:** Volatility 100 (1s) Index
+
+⚠️ Aggressive reversal-only setup. Only trade if strong low-digit shield exists.`;
+    }
+
+    // ── Over strategies ───────────────────────────────────────────
     if (q.includes('over 0') || q.includes('under 9')) {
-        return `🎯 OVER 0 / UNDER 9 Strategy:
+        return `🎯 OVER 0 / UNDER 9 — Safest entries (~90% probability)
 
-**Conditions for OVER 0:**
-• Digit 0 must be below 10% frequency
-• Avoid trade if green or red bar is at digit 0
-• Green bar must be at an EVEN digit
+**OVER 0:** Digit 0 < 10%, green bar at even digit. Entry: cursor hits 0, stable. 1 tick.
+**UNDER 9:** Digit 9 < 10%, no green/red at 9. Entry: cursor hits 9 or 0. 1 tick (plain) / 2 ticks (1s).
 
-**Entry Point:**
-Click OVER when the cursor hits digit 0 — make sure digit 0 is constant (not increasing or decreasing).
-
-**Ticks:** 1 tick (~90% probability — take it fast!)
-**Market:** Volatility 10 (1s) Index recommended`;
+Both are low-risk, high-probability — best for beginners or warm-up trades.`;
     }
 
     if (q.includes('over 7')) {
-        return `🎯 OVER 7 Strategy:
+        return `🎯 OVER 7 Strategy
 
 **Conditions:**
 • Green bar MUST be at digit 9 or 1
-• Red bar should be at digit 5 or 3 ONLY
-• Digits above 7 (8, 9) must be increasing rapidly
+• Red bar (lowest digit) at 5 or 3 only
+• Digits 8, 9 increasing rapidly (≥11%)
 
-**Entry Point:**
-Wait for moving cursor to hit the red bar digit (5 or 3). Confirm at least one digit above 7 is still increasing, then run bot or click OVER.
+**Entry:** Cursor hits the red bar digit (5 or 3) — confirm one digit above 7 is increasing
 
-**Ticks:** 2–3 ticks
-**Market:** Volatility 75–100 (1s) Index`;
+**Ticks:** 2–3 ticks | **Market:** Volatility 100 (1s) Index`;
     }
 
     if (q.includes('over 6')) {
-        return `🎯 OVER 6 Strategy:
+        return `🎯 OVER 6 Strategy
 
 **Conditions:**
-• Green bar MUST be at digit 8 (the only even digit above 6)
-• Red bar must be on a digit below 6 AND on an even digit
-• At least 2 digits above 6 must have 11%+ frequency
+• Green bar MUST be at digit 8 (only even digit above 6)
+• Red bar on even digit below 6
+• 2+ digits above 6 at 11%+
 
-**Entry Point:**
-Wait for cursor to hit digit 4, 2, or 0 — choose the one with highest %. Ensure remaining digits are constant, then run bot or click OVER.
+**Entry:** Cursor at digit 0, 2, or 4 (choose highest % one), remaining digits constant
 
-**Ticks:** 2–3 ticks
-**Market:** Volatility 75 (1s) Index`;
+**Ticks:** 2–3 ticks | **Market:** Volatility 75 (1s) Index`;
     }
 
-    if (q.includes('over 5') || q.includes('under 5') || q.includes('50/50') || q.includes('fifty')) {
-        return `🎯 OVER 5 / UNDER 5 Strategy (50/50):
-
-**Conditions for OVER 5:**
-• At least 3 digits below 5 must be under 10%
-• Avoid green/red bar at any digit below 5
-• Green bar at ODD digit, red bar at ODD digit
-
-**Entry Point:**
-Click OVER when cursor hits digit 1, 3, or 5 — make sure that highlighted digit is not rising or falling.
-
-**Ticks:** 5 ticks (balanced probability — need time for stats to play out)
-**Market:** Volatility 50 (1s) Index`;
-    }
-
-    if (q.includes('over 4')) {
-        return `🎯 OVER 4 Strategy:
+    if (q.includes('over 5')) {
+        return `🎯 OVER 5 Strategy (Aggressive — Momentum only)
 
 **Conditions:**
-• At least 3 of digits 0–4 must be below 10%
-• Avoid green or red bar at any of digits 0,1,2,3,4
-• Green bar at EVEN digit, red bar at EVEN digit
-• Watch digits 0,1,2,3 closely — are they increasing or decreasing?
+• 3+ digits below 5 are under 10%
+• Green and red bars both at ODD digits
+• No green/red bar at digits 0–4
 
-**Entry Point:**
-Click OVER when cursor hits digit 2 or 4 — confirm those digits are not moving up or down.
+**Best setup:** Staircase pattern 2→3→4→5→6 in last 10 ticks
 
-**Ticks:** 3–5 ticks
-**Market:** Volatility 50 (1s) Index`;
+**Entry:** Cursor at digit 1, 3, or 5 — constant | **Ticks:** 2–3 ticks`;
     }
 
-    if (q.includes('over 3')) {
-        return `🎯 OVER 3 Strategy:
+    if (q.includes('over 4') || q.includes('over 3') || q.includes('over 2') || q.includes('over 1')) {
+        const num = q.includes('over 4') ? 4 : q.includes('over 3') ? 3 : q.includes('over 2') ? 2 : 1;
+        const rules: Record<number, string> = {
+            1: 'Digits 0,1 < 10% | Green bar at ODD | Entry: digit 1 | 1–2 ticks ⭐ STRONG',
+            2: 'Digits 0,1,2 < 10% | Green bar at EVEN | Entry: digit 0 or 2 | 2–4 ticks',
+            3: 'Digits 0–3 < 10% | Green & red both ODD | Entry: digit 1 or 3 | 2–4 ticks ⭐ STRONG',
+            4: '3+ of digits 0–4 < 10% | Green & red both EVEN | Entry: digit 2 or 4 | 3–4 ticks ⭐ STRONG',
+        };
+        return `🎯 OVER ${num} — ${rules[num]}
 
-**Conditions:**
-• Digits 0, 1, 2, 3 all below 10%
-• Avoid green/red bar at digits 0,1,2,3
-• Green bar at ODD digit, red bar at ODD digit
-• Watch digits 0,1,2,3 for increasing/decreasing trends
+**Remember:** Green bar = highest frequency digit | Red bar = LOWEST frequency digit
 
-**Entry Point:**
-Click OVER when cursor hits digit 1 or 3 — make sure those digits are constant.
-
-**Ticks:** 2–3 ticks
-**Market:** Volatility 25 (1s) Index`;
+Confirm entry digit is constant (not rising or falling) before clicking OVER.`;
     }
 
-    if (q.includes('over 2')) {
-        return `🎯 OVER 2 Strategy:
+    // ── Bars ──────────────────────────────────────────────────────
+    if (q.includes('green bar') || q.includes('red bar') || q.includes('bar mean') || q.includes('bar is')) {
+        return `📊 Green Bar & Red Bar — Ahmed's Definitions:
 
-**Conditions:**
-• Digits 0, 1, 2 all below 10%
-• Avoid green/red bar at digits 0, 1, or 2
-• Green bar at EVEN digit
-• Watch digits 0, 1, 2 for stability
+• **Green bar** = digit with the HIGHEST percentage frequency
+• **Red bar** = digit with the LOWEST percentage frequency
 
-**Entry Point:**
-Click OVER when cursor hits digit 0 or 2 — confirm those highlighted digits are constant.
+These are different from what many think! The red bar marks the COLDEST digit — the one appearing least often.
 
-**Ticks:** 2–3 ticks
-**Market:** Volatility 25 (1s) Index`;
+**Why it matters:**
+• For Over/Under, you check where these bars are to confirm setup validity
+• e.g. Over 7 needs green bar at 9 or 1, red bar at 5 or 3
+• e.g. Over 6 needs green bar MUST be at 8
+
+Strong Over entries: 3, 4, 1
+Weak Over entries: 8, 7, 0
+Strong Under entries: 9, 6, 2
+Weak Under entries: 5`;
     }
 
-    if (q.includes('over 1')) {
-        return `🎯 OVER 1 Strategy:
+    // ── Correlation & patterns ────────────────────────────────────
+    if (q.includes('correlation') || q.includes('cluster') || q.includes('pattern') || q.includes('exhaust')) {
+        return `📈 Digit Correlation Theory (Advanced Research):
 
-**Conditions:**
-• Digits 0 and 1 both below 10%
-• Avoid green/red bar at digits 0 or 1
-• Green bar at ODD digit
+**High-digit exhaustion (7,8,9 clustering):**
+→ Digits 7,8,9 appearing repeatedly = overheating
+→ Signal: UNDER 6 or UNDER 7 (mirror reversal into 0,1,2)
+→ Example: 8,9,7,8,9 in last 10 ticks → enter UNDER 6
 
-**Entry Point:**
-Click OVER when cursor hits digit 1 — make sure digits 0 and 1 are not increasing or decreasing.
+**Low-digit exhaustion (0,1,2 clustering):**
+→ Signal: OVER 3 or OVER 4
+→ Example: 0,1,2,0,1 → enter OVER 4
 
-**Ticks:** 1–2 ticks
-**Market:** Volatility 10 (1s) Index`;
+**Staircase continuation (2→3→4→5→6):**
+→ Sequential mid-range sequence = momentum continuation
+→ Signal: OVER 5 (aggressive)
+
+**Velocity trap (fast 7,8,9):**
+→ Rapid 7,8,9 bursts = trap before sharp reversal
+→ Signal: UNDER 6 with 5 ticks
+
+Always observe 10 ticks before entering. Count high vs low digit pressure.`;
     }
 
-    if (q.includes('green bar') || q.includes('red bar') || q.includes('bar mean')) {
-        return `📊 Understanding Green & Red Bars:
+    // ── Tick selection ────────────────────────────────────────────
+    if (q.includes('tick') && (q.includes('how many') || q.includes('many tick') || q.includes('number of'))) {
+        return `⏱️ Tick Selection Matrix (from Research PDF):
 
-In the digit frequency chart:
-• **Green bar** = digit with HIGHEST frequency (most appearances in last N ticks)
-• **Red bar** = digit with SECOND HIGHEST frequency
+| Setup      | Ticks    | Risk   |
+|------------|----------|--------|
+| UNDER 9    | 1 tick   | Low    |
+| OVER 1     | 1–2      | Low    |
+| UNDER 8    | 1–3      | Low    |
+| OVER 2     | 2–4      | Medium |
+| OVER 3     | 2–4      | Medium |
+| UNDER 7    | 2–3–4    | Medium |
+| OVER 4     | 3–4      | Medium |
+| UNDER 6    | 5 ticks  | Medium |
+| OVER 5     | 2–3      | High   |
+| UNDER 5    | 3–5      | High   |
+| UNDER 4    | 5 ticks  | High   |
 
-These bars help you identify where the market momentum is concentrated.
-
-**Key rules by trade type:**
-• Over 0, 2, 4, 6 → Green bar must be at EVEN digit
-• Over 1, 3, 5, 7 → Green bar must be at ODD digit
-• Over 6 → Green MUST be at digit 8 specifically
-• Over 7 → Green at digit 9 or 1 (must)
-
-⚠️ The bars show PAST distribution. They do not predict future ticks — probability stays at 10% per digit always.`;
+More ticks = more time for stats to express. Less ticks = faster, higher variance.`;
     }
 
-    if (q.includes('entry') || q.includes('when to enter') || q.includes('entry point')) {
-        return `🎯 Ahmed's Entry Point Rules:
+    // ── Strong/Weak entries ───────────────────────────────────────
+    if (q.includes('strong') || q.includes('weak') || q.includes('best entry') || q.includes('strongest')) {
+        return `💪 Strong vs Weak Entry Points:
 
-The "cursor" = the current moving digit on the last price tick.
+**Strong OVER entries:** 3, 4, 1
+**Weak OVER entries:** 8, 7, 0
 
-**General principle:** Wait for the cursor to land on your target entry digit, then verify it is CONSTANT (not increasing or decreasing its frequency bar) before clicking.
+**Strong UNDER entries:** 9, 6, 2
+**Weak UNDER entries:** 5
 
-**By trade:**
-• Over 0 → Enter when cursor hits digit 0, constant
-• Over 1 → Enter when cursor hits digit 1, digits 0 & 1 constant
-• Over 2 → Enter when cursor hits digit 0 or 2, those are constant
-• Over 3 → Enter when cursor hits digit 1 or 3, constant
-• Over 4 → Enter when cursor hits digit 2 or 4, constant
-• Over 5 → Enter when cursor hits digit 1, 3, or 5, constant
-• Over 6 → Enter when cursor hits digit 0, 2, or 4 (highest %)
-• Over 7 → Enter when cursor hits the red bar digit (5 or 3), with one digit above 7 increasing`;
+Always prefer strong entry points. Weak entries require extra confirmation before trading.
+
+**Professional entry models:**
+• High-digit exhaustion: 8,9,7,8,9 → UNDER 6
+• Low-digit exhaustion: 0,1,2,0,1 → OVER 4
+• Staircase: 2,3,4,5,6 → OVER 5
+• Velocity trap: fast 7,8,9 → UNDER 6`;
     }
 
+    // ── Risk management ───────────────────────────────────────────
+    if (q.includes('risk') || q.includes('stake') || q.includes('martingale') || q.includes('money')) {
+        return `💰 Risk Management (Professional Rules):
+
+• Risk only **1–3% per trade** of account balance
+• Account $100 → max $1–3 per trade
+• Use **fixed fractional staking** — NOT emotional martingale
+• Maximum **10% daily drawdown** — stop if hit
+• Maximum **5–15 trades per session** — quality over quantity
+
+**Martingale Warning:**
+$1 → $2 → $4 → $8 → $16 → account wipe in one streak
+Never increase stake from anger or desperation.
+
+**Daily structure:**
+• 5–15 trades max per session
+• Cooldown after losses
+• Stop when daily limit reached`;
+    }
+
+    // ── Market selection ──────────────────────────────────────────
     if (q.includes('market') && (q.includes('best') || q.includes('which') || q.includes('choose'))) {
-        return `📊 Market Selection Guide (Ahmed's Method):
+        return `📊 Market Selection Guide:
 
-• **Volatility 10 (1s)** → Slow ticks, best for beginners. Use for Over 0, Over 1 (high probability trades). Easier to observe digit stability.
+• **Volatility 50 Index** — Beginner-friendly, best for UNDER 9, UNDER 8
+• **Volatility 75 Index** — Balanced momentum, UNDER 7, OVER 3
+• **Volatility 100 Index** — Fast & aggressive, UNDER 6, OVER 6, OVER 7
 
-• **Volatility 25 (1s)** → Moderate speed. Use for Over 2, Over 3. Good balance of speed and analysis time.
+**1s Indices** (faster ticks):
+• Require stronger emotional control
+• UNDER 9 on 1s → use 2 ticks instead of 1
+• Best after you're comfortable on plain indices
 
-• **Volatility 50 (1s)** → Medium-fast. Use for Over 4, Over 5 (50/50 trades).
-
-• **Volatility 75 (1s)** → Fast. Use for Over 6. Requires quick entries.
-
-• **Volatility 100 (1s)** → Very fast. Use for Over 7. Only for experienced traders — fast ticks increase emotional pressure.
-
-⚠️ Start on lower volatility. Higher speed = less time to analyse = more impulsive decisions.`;
+Start with Volatility 50 Index. Move to higher volatility as you gain experience.`;
     }
 
-    if (q.includes('martingale') || q.includes('recovery') || q.includes('double')) {
-        return `⚠️ Martingale Warning (Ahmed's Advice):
+    // ── Observation phase ─────────────────────────────────────────
+    if (q.includes('observe') || q.includes('before') || q.includes('watch') || q.includes('10 tick')) {
+        return `👁️ Observation Phase — Ahmed's Method:
 
-Martingale = doubling stake after each loss: $1 → $2 → $4 → $8 → $16...
+**Step 1:** Watch 10–20 ticks without trading
+**Step 2:** Count high-digit vs low-digit pressure
+**Step 3:** Look for clustering, repetition, sequences
+**Step 4:** Identify the pattern:
+   → Clustering 7,8,9 = consider UNDER 6
+   → Clustering 0,1,2 = consider OVER 4
+   → Staircase 2→3→4→5→6 = consider OVER 5
 
-**The danger:** One extended losing streak wipes your account. Digit markets move fast, which amplifies emotional decisions.
+**Step 5:** Check digit frequencies (use 🔬 Analyze Market)
+**Step 6:** Confirm all conditions met → enter only then
 
-**Ahmed's rule:** Never exceed 2% of account balance per trade. If using martingale, set a hard stop at 3–5 steps maximum.
-
-**Better approach:** Observe 50 ticks first. Count wins and losses from your entry digit. Only enter when conditions are clearly met — no emotional escalation.
-
-**Risk management:** Account $100 → Max stake $2 per trade.`;
+⚠️ Never enter without visible imbalance. Random clicking destroys accounts.`;
     }
 
-    if (q.includes('gambler') || q.includes('bias') || q.includes('psychology') || q.includes('emotion')) {
-        return `🧠 Digit Psychology (Ahmed's Framework):
+    // ── Psychology ────────────────────────────────────────────────
+    if (q.includes('psychology') || q.includes('emotion') || q.includes('gambler') || q.includes('bias')) {
+        return `🧠 Digit Psychology & Emotional Discipline:
 
-**Gambler's Fallacy** — "Digit 8 appeared 5 times, it must stop."
-Reality: Every tick is independent. Probability stays at 10% always.
+**Gambler's Fallacy:** "Digit 8 appeared 5 times — it must stop."
+Reality: Each tick is independent. Probability stays at 10%.
 
-**Recency Bias** — "Even keeps losing, I'll switch to Odd."
-Reality: Even/Odd remains ~50/50 regardless of recent sequence.
+**Recency Bias:** "Even keeps losing, switching to Odd."
+Reality: 50/50 regardless of recent sequence.
 
-**Emotional Escalation** — Losing → doubling stake → account wipe.
-Solution: Fixed stakes, observe first, enter only on signal.
+**Emotional Escalation:** Loss → double stake → account wipe.
 
-**Ahmed's framework:**
-1. Define risk (2% max per trade)
-2. Observe 50 ticks before entering — count wins/losses from your entry digit
-3. Enter ONLY when all predefined conditions are met
-4. Never change strategy mid-session due to emotion`;
+**Ahmed's Rules:**
+• Never trade from anger or desperation
+• Winning streaks should not create greed
+• Execute based on logic and structure only
+• Use cooldown periods after emotional pressure
+• Focus on consistency, not fast recovery`;
     }
 
-    if (q.includes('observe') || q.includes('count') || q.includes('before trading')) {
-        return `👁️ Observation Phase (Ahmed's Method):
+    // ── Hello / greeting ──────────────────────────────────────────
+    if (q.includes('hello') || q.includes('hi') || q.includes('hey') || q.length < 10) {
+        return `👋 Welcome to AHMED AI v2 — upgraded with full research!
 
-Before entering any trade:
+I'm trained on:
+📕 Ahmed The Trader's digit psychology methodology (Over 0–7)
+📗 Digit Correlation & Tick Psychology Research (patterns, exhaustion, velocity traps)
+📘 Markets of Under PDF (Under 5–9 exact rules, shield digits)
 
-1. **Watch 50 ticks without trading** — note digit frequencies
-2. **Count ticks from the winning side** — e.g. for Under 7, count ticks where digit was 0–6. How many wins? How many losses?
-3. **Choose your entry digit** — check its frequency of wins vs losses
-4. **Apply the concept of ticks** — give your trade enough time for stats to express
+I can help with:
+• 🔬 **Analyze Market** — input live digit frequencies → instant trade signal
+• 🎯 Any Over/Under strategy (Over 0–7, Under 5–9)
+• 📈 Correlation patterns (exhaustion, velocity traps, staircase)
+• ⏱️ Tick selection by contract type
+• 💰 Risk management & emotional discipline
 
-Example: Trading Over 6
-→ Count last 20 ticks where price was ≤6 (losses)
-→ Identify which of those digits (0,2,4) had the highest frequency
-→ Wait for cursor to land there and confirm digits are stable
-→ THEN enter with 2–3 ticks`;
+Just ask or use the 🔬 button!`;
     }
 
-    if (q.includes('digit distribution') || q.includes('frequency') || q.includes('analyse') || q.includes('analyze')) {
-        return `📊 Use the Market Analyzer above!
+    // ── Default ───────────────────────────────────────────────────
+    return `🤖 AHMED AI — Ask me anything about digit trading:
 
-Click "🔬 Analyze Market" to open the digit input panel. Enter the current % for each digit 0–9 from your Deriv Analysis Tool screen, and I will:
+**Over strategies:** "How do I trade Over 6?" / "Over 7 rules?"
+**Under strategies:** "Under 9 rules?" / "Under 6 setup?" / "Under 8 entry?"
+**Bars:** "What is the green bar?" / "What is the red bar?"
+**Patterns:** "What is high-digit exhaustion?" / "Staircase pattern?"
+**Strong entries:** "What are the strongest Over entries?"
+**Ticks:** "How many ticks for Under 6?"
+**Markets:** "Which market for Under 9?"
+**Risk:** "How do I manage risk?"
 
-✅ Identify which Over/Under trade is valid
-✅ Tell you the exact entry digit to wait for
-✅ Recommend the tick count
-✅ List all conditions met or failed
-✅ Give you the specific entry instruction
-
-This is Ahmed's complete methodology applied in real time.`;
-    }
-
-    if (q.includes('hello') || q.includes('hi') || q.includes('hey')) {
-        return `👋 Welcome to AHMED AI — your digit trading assistant!
-
-I'm trained on Ahmed The Trader's complete digit psychology methodology. I can help you:
-
-• 🔬 **Analyze digit distributions** — input frequencies, get trade signal
-• 🎯 **Learn Over/Under rules** — Over 0 through Over 7
-• ⏱️ **Choose tick count** — based on contract probability
-• 🧠 **Understand digit psychology** — avoid gambler's fallacy & emotional traps
-• 📊 **Select the right market** — match volatility to your strategy
-
-Ask me anything, or use "🔬 Analyze Market" to get a live recommendation!`;
-    }
-
-    // Default comprehensive response
-    return `🤖 AHMED AI — Trained on Ahmed The Trader's Methodology
-
-I can answer specific questions about:
-
-📌 **Strategies** — "How do I trade Over 6?" / "Explain Over 7"
-📌 **Entry points** — "When do I enter?" / "What is the entry for Over 5?"
-📌 **Tick selection** — "How many ticks for Over 2?"
-📌 **Market selection** — "Which market is best?"
-📌 **Digit bars** — "What do green and red bars mean?"
-📌 **Psychology** — "What is gambler's fallacy?"
-📌 **Risk** — "How do I manage martingale risk?"
-📌 **Analysis** — Use the 🔬 Analyze Market button with real digit %s
-
-Try asking: "How do I trade Over 7?" or open the Analyzer!`;
+Or use **🔬 Analyze Market** to input your live digit % and get an instant trade signal!`;
 }

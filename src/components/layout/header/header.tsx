@@ -11,7 +11,6 @@ import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import useTMB from '@/hooks/useTMB';
 import { clearAuthData, handleOidcAuthFailure } from '@/utils/auth-utils';
-import { initiateDerivOAuth, initiateDerivSignUp } from '@/utils/deriv-oauth';
 import { StandaloneCircleUserRegularIcon } from '@deriv/quill-icons/Standalone';
 import { requestOidcAuthentication } from '@deriv-com/auth-client';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -160,13 +159,7 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                                         });
                                     } catch (oidcErr) {
                                         handleOidcAuthFailure(oidcErr);
-                                        // Fallback: Deriv OAuth 2.0 PKCE flow (auth.deriv.com)
-                                        try {
-                                            await initiateDerivOAuth('trade');
-                                        } catch {
-                                            // Final fallback: legacy OAuth URL
-                                            window.location.replace(generateOAuthURL());
-                                        }
+                                        window.location.replace(generateOAuthURL());
                                     }
                                 }
                             } catch (error) {
@@ -179,12 +172,8 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                     </Button>
                     <Button
                         primary
-                        onClick={async () => {
-                            try {
-                                await initiateDerivSignUp();
-                            } catch {
-                                window.open(standalone_routes.signup);
-                            }
+                        onClick={() => {
+                            window.open(standalone_routes.signup);
                         }}
                     >
                         <Localize i18n_default_text='Sign up' />
