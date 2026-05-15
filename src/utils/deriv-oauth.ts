@@ -1,23 +1,27 @@
 /**
- * Deriv OAuth 2.0 with PKCE — based on https://developers.deriv.com/llms.txt
+ * Deriv OAuth 2.0 with PKCE
  * Authorization endpoint: https://auth.deriv.com/oauth2/auth
- * Token endpoint: https://auth.deriv.com/oauth2/token
+ * Token endpoint:         https://auth.deriv.com/oauth2/token
+ * Legacy tokens:          https://oauth.deriv.com/oauth2/legacy/tokens
+ *
+ * client_id = the Deriv app_id (stored in localStorage config.app_id or derived from hostname)
  */
 
+import { getAppId } from '@/components/shared';
+
 const DERIV_AUTH_ENDPOINT = 'https://auth.deriv.com/oauth2/auth';
-export const DERIV_OAUTH_CLIENT_ID = 'deriv-bot';
+const DERIV_TOKEN_ENDPOINT = 'https://auth.deriv.com/oauth2/token';
+const DERIV_LEGACY_TOKENS_URL = 'https://oauth.deriv.com/oauth2/legacy/tokens';
 
 async function generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
     const array = crypto.getRandomValues(new Uint8Array(64));
     const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
     const codeVerifier = Array.from(array).map(v => CHARS[v % CHARS.length]).join('');
-
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
     const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash)))
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
-
     return { codeVerifier, codeChallenge };
 }
 
@@ -28,22 +32,24 @@ function generateState(): string {
 
 /**
  * Initiate Deriv OAuth 2.0 login with PKCE.
- * Redirects the browser to the Deriv authorization page.
+ * Redirects the browser to https://auth.deriv.com/oauth2/auth
  */
-export async function initiateDerivOAuth(scope: 'trade' | 'admin' = 'trade'): Promise<void> {
+export async function initiateDerivOAuth(): Promise<void> {
     const redirectUri = `${window.location.origin}/callback`;
+    const clientId = String(getAppId());
     const { codeVerifier, codeChallenge } = await generatePKCE();
     const state = generateState();
 
-    sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-    sessionStorage.setItem('oauth_state', state);
-    sessionStorage.setItem('oauth_redirect_uri', redirectUri);
+    sessionStorage.setItem('deriv_pkce_verifier', codeVerifier);
+    sessionStorage.setItem('deriv_pkce_state', state);
+    sessionStorage.setItem('deriv_pkce_redirect_uri', redirectUri);
+    sessionStorage.setItem('deriv_pkce_client_id', clientId);
 
     const params = new URLSearchParams({
         response_type: 'code',
-        client_id: DERIV_OAUTH_CLIENT_ID,
+        client_id: clientId,
         redirect_uri: redirectUri,
-        scope,
+        scope: 'openid',
         state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
@@ -53,79 +59,74 @@ export async function initiateDerivOAuth(scope: 'trade' | 'admin' = 'trade'): Pr
 }
 
 /**
- * Initiate Deriv OAuth 2.0 sign-up with PKCE.
+ * Returns true if there is a pending custom PKCE flow in sessionStorage.
  */
-export async function initiateDerivSignUp(): Promise<void> {
-    const redirectUri = `${window.location.origin}/callback`;
-    const { codeVerifier, codeChallenge } = await generatePKCE();
-    const state = generateState();
-
-    sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-    sessionStorage.setItem('oauth_state', state);
-    sessionStorage.setItem('oauth_redirect_uri', redirectUri);
-
-    const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: DERIV_OAUTH_CLIENT_ID,
-        redirect_uri: redirectUri,
-        scope: 'trade',
-        state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        prompt: 'registration',
-    });
-
-    window.location.href = `${DERIV_AUTH_ENDPOINT}?${params.toString()}`;
+export function hasPendingPKCE(): boolean {
+    return !!sessionStorage.getItem('deriv_pkce_verifier');
 }
 
 /**
- * Handle the OAuth callback — verify state and extract the authorization code.
- * Returns { code, codeVerifier } if successful, or null if state mismatch.
+ * Handle the custom PKCE callback.
+ * Verifies state, exchanges code for access token, then gets Deriv legacy tokens.
+ * Returns the legacy token map (acct1, token1, cur1, ...) or null on failure.
  */
-export function handleOAuthCallback(): { code: string; codeVerifier: string } | null {
+export async function handlePKCECallback(): Promise<Record<string, string> | null> {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const returnedState = params.get('state');
-    const storedState = sessionStorage.getItem('oauth_state');
-    const codeVerifier = sessionStorage.getItem('pkce_code_verifier') ?? '';
+    const storedState = sessionStorage.getItem('deriv_pkce_state');
+    const codeVerifier = sessionStorage.getItem('deriv_pkce_verifier');
+    const redirectUri = sessionStorage.getItem('deriv_pkce_redirect_uri');
+    const clientId = sessionStorage.getItem('deriv_pkce_client_id');
 
-    if (!code || !returnedState || returnedState !== storedState) {
+    if (!code || !returnedState || returnedState !== storedState || !codeVerifier) {
         return null;
     }
 
-    sessionStorage.removeItem('oauth_state');
-    sessionStorage.removeItem('pkce_code_verifier');
-
-    return { code, codeVerifier };
-}
-
-/**
- * Exchange the authorization code for an access token via the server.
- * NOTE: In production this should be done from a backend to keep client_secret safe.
- * This is a direct client-side call — suitable only for public clients.
- */
-export async function exchangeCodeForToken(code: string, codeVerifier: string): Promise<{ access_token: string } | null> {
-    const redirectUri = sessionStorage.getItem('oauth_redirect_uri') ?? `${window.location.origin}/callback`;
-    sessionStorage.removeItem('oauth_redirect_uri');
+    sessionStorage.removeItem('deriv_pkce_state');
+    sessionStorage.removeItem('deriv_pkce_verifier');
+    sessionStorage.removeItem('deriv_pkce_redirect_uri');
+    sessionStorage.removeItem('deriv_pkce_client_id');
 
     try {
-        const body = new URLSearchParams({
+        // Step 1: Exchange authorization code for OIDC access token
+        const tokenBody = new URLSearchParams({
             grant_type: 'authorization_code',
-            client_id: DERIV_OAUTH_CLIENT_ID,
+            client_id: clientId ?? String(getAppId()),
             code,
             code_verifier: codeVerifier,
-            redirect_uri: redirectUri,
+            redirect_uri: redirectUri ?? `${window.location.origin}/callback`,
         });
 
-        const res = await fetch('https://auth.deriv.com/oauth2/token', {
+        const tokenRes = await fetch(DERIV_TOKEN_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString(),
+            body: tokenBody.toString(),
         });
 
-        if (!res.ok) return null;
-        return await res.json();
-    } catch {
+        if (!tokenRes.ok) {
+            console.error('PKCE token exchange failed:', tokenRes.status, await tokenRes.text());
+            return null;
+        }
+
+        const { access_token } = await tokenRes.json();
+        if (!access_token) return null;
+
+        // Step 2: Exchange OIDC access token for Deriv legacy tokens
+        const legacyRes = await fetch(DERIV_LEGACY_TOKENS_URL, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${access_token}` },
+        });
+
+        if (!legacyRes.ok) {
+            console.error('Legacy token exchange failed:', legacyRes.status, await legacyRes.text());
+            return null;
+        }
+
+        const legacyTokens = await legacyRes.json();
+        return legacyTokens as Record<string, string>;
+    } catch (err) {
+        console.error('PKCE callback error:', err);
         return null;
     }
 }

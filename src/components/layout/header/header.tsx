@@ -11,6 +11,7 @@ import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import useTMB from '@/hooks/useTMB';
 import { clearAuthData, handleOidcAuthFailure } from '@/utils/auth-utils';
+import { initiateDerivOAuth } from '@/utils/deriv-oauth';
 import { StandaloneCircleUserRegularIcon } from '@deriv/quill-icons/Standalone';
 import { requestOidcAuthentication } from '@deriv-com/auth-client';
 import { Localize, useTranslations } from '@deriv-com/translations';
@@ -159,7 +160,12 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                                         });
                                     } catch (oidcErr) {
                                         handleOidcAuthFailure(oidcErr);
-                                        window.location.replace(generateOAuthURL());
+                                        // Direct fallback: PKCE to auth.deriv.com/oauth2/auth
+                                        try {
+                                            await initiateDerivOAuth();
+                                        } catch {
+                                            window.location.replace(generateOAuthURL());
+                                        }
                                     }
                                 }
                             } catch (error) {
