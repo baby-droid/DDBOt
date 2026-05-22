@@ -214,27 +214,32 @@ class APIBase {
     }
 
     async subscribe() {
-        const subscribeToStream = (streamName: string) => {
-            return doUntilDone(
+        /* ── Balance: try all-accounts first, fall back to active-account ── */
+        const balancePromise = this.api?.send({ balance: 1, subscribe: 1, account: 'all' });
+        if (balancePromise) {
+            this.current_auth_subscriptions.push(balancePromise as any);
+            (balancePromise as any).catch((err: any) => {
+                const code = err?.error?.code ?? err?.code ?? '';
+                if (code === 'PermissionDenied') {
+                    const fallback = this.api?.send({ balance: 1, subscribe: 1 });
+                    if (fallback) this.current_auth_subscriptions.push(fallback as any);
+                }
+            });
+        }
+
+        /* ── Other streams ── */
+        const subscribeToStream = (streamName: string) =>
+            doUntilDone(
                 () => {
-                    const subscription = this.api?.send({
-                        [streamName]: 1,
-                        subscribe: 1,
-                        ...(streamName === 'balance' ? { account: 'all' } : {}),
-                    });
-                    if (subscription) {
-                        this.current_auth_subscriptions.push(subscription);
-                    }
+                    const subscription = this.api?.send({ [streamName]: 1, subscribe: 1 });
+                    if (subscription) this.current_auth_subscriptions.push(subscription);
                     return subscription;
                 },
                 [],
                 this
             );
-        };
 
-        const streamsToSubscribe = ['balance', 'transaction', 'proposal_open_contract'];
-
-        await Promise.all(streamsToSubscribe.map(subscribeToStream));
+        await Promise.all(['transaction', 'proposal_open_contract'].map(subscribeToStream));
     }
 
     getActiveSymbols = async () => {
