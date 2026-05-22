@@ -352,9 +352,14 @@ button[data-testid='dt_run_button'],
     fill: #6db8e0 !important;
 }
 
-/* ── Typography ── */
+/* ── Typography — headings with pale blue background ── */
 h1, h2, h3, h4, h5, h6 {
-    color: #c8e8ff !important;
+    color: #07111f !important;
+    background: linear-gradient(90deg, #a8d4f5 0%, #c8e8ff 60%, rgba(168,212,245,0.7) 100%) !important;
+    display: inline-block !important;
+    padding: 2px 10px 2px 8px !important;
+    border-radius: 4px !important;
+    margin-bottom: 4px !important;
 }
 
 p, span, label, td, th, li {
