@@ -4,69 +4,25 @@ const AFFILIATE_UTM_MEDIUM = 'affiliate';
 const AFFILIATE_UTM_SOURCE = 'CU304029';
 const TURNOVER_SIDC = '2CC4E950-37B6-44E9-80CC-BA2E60E6E630';
 
-const APP_CLIENT_ID = '113192';
+const LEGACY_APP_ID = '113192';
 
-async function generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string; state: string }> {
-    const array = crypto.getRandomValues(new Uint8Array(64));
-    const codeVerifier = Array.from(array)
-        .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
-        .join('');
-
-    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
-    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '');
-
-    const state = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-
-    sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-    sessionStorage.setItem('oauth_state', state);
-
-    return { codeVerifier, codeChallenge, state };
+/**
+ * Login — uses legacy oauth.deriv.com with app_id=113192.
+ * After login Deriv redirects back with token1/acct1/cur1 query params.
+ */
+export function loginWithPKCE() {
+    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${LEGACY_APP_ID}&l=EN&brand=deriv`;
 }
 
-export async function loginWithPKCE() {
-    const { codeChallenge, state } = await generatePKCE();
-    const redirectUri = window.location.origin + '/callback';
-
-    const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: APP_CLIENT_ID,
-        redirect_uri: redirectUri,
-        scope: 'trade account_manage',
-        state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        app_id: APP_CLIENT_ID,
-    });
-
-    window.location.href = `https://auth.deriv.com/oauth2/auth?${params.toString()}`;
-}
-
-export async function signUpWithPKCE() {
-    const { codeChallenge, state } = await generatePKCE();
-    const redirectUri = window.location.origin + '/callback';
-
-    const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: APP_CLIENT_ID,
-        redirect_uri: redirectUri,
-        scope: 'trade account_manage',
-        state,
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        app_id: APP_CLIENT_ID,
-        prompt: 'registration',
-        sidi: AFFILIATE_SIDI,
-        utm_campaign: AFFILIATE_UTM_CAMPAIGN,
-        utm_medium: AFFILIATE_UTM_MEDIUM,
-        utm_source: AFFILIATE_UTM_SOURCE,
-    });
-
-    window.location.href = `https://auth.deriv.com/oauth2/auth?${params.toString()}`;
+/**
+ * Sign Up — opens the partner affiliate registration page so the user
+ * registers under the AHMEDSYNTRADER affiliate account.
+ */
+export function signUpWithPKCE() {
+    window.open(
+        `https://deriv.com/signup/?sidi=${AFFILIATE_SIDI}&utm_campaign=${AFFILIATE_UTM_CAMPAIGN}&utm_medium=${AFFILIATE_UTM_MEDIUM}&utm_source=${AFFILIATE_UTM_SOURCE}`,
+        '_blank'
+    );
 }
 
 export function openTurnoverLink() {

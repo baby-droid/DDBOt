@@ -2,14 +2,48 @@ import { useEffect, useRef, useState } from 'react';
 import './chunk-loader.scss';
 
 const LOAD_MESSAGES = [
-    'Initializing AHMEDSYNTRADER...',
+    'Preparing your trading experience...',
     'Loading market intelligence...',
-    'Syncing neural pathways...',
     'Connecting to live markets...',
     'Calibrating algorithms...',
-    'Loading trading systems...',
     'Scanning volatility patterns...',
+    'Syncing AI trading signals...',
     'Finalizing quantum setup...',
+    'Almost ready...',
+];
+
+const FEATURES = [
+    {
+        icon: (
+            <svg viewBox='0 0 24 24' fill='none' width='28' height='28'>
+                <polyline points='2,18 8,12 13,16 22,6' stroke='#00e5a0' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' />
+                <polyline points='16,6 22,6 22,12' stroke='#00e5a0' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' />
+            </svg>
+        ),
+        label: 'Analysis Tool',
+    },
+    {
+        icon: (
+            <svg viewBox='0 0 24 24' fill='none' width='28' height='28'>
+                <rect x='3' y='11' width='18' height='11' rx='2' stroke='#00e5a0' strokeWidth='2' />
+                <path d='M7 11V7a5 5 0 0 1 10 0v4' stroke='#00e5a0' strokeWidth='2' strokeLinecap='round' />
+                <circle cx='12' cy='16' r='1.5' fill='#00e5a0' />
+                <path d='M8 8 Q12 5 16 8' stroke='#00e5a0' strokeWidth='1.5' strokeLinecap='round' />
+            </svg>
+        ),
+        label: 'AI Bots',
+    },
+    {
+        icon: (
+            <svg viewBox='0 0 24 24' fill='none' width='28' height='28'>
+                <circle cx='9' cy='7' r='3' stroke='#00e5a0' strokeWidth='2' />
+                <circle cx='17' cy='9' r='2.5' stroke='#00e5a0' strokeWidth='2' />
+                <path d='M3 20c0-3.3 2.7-6 6-6h2' stroke='#00e5a0' strokeWidth='2' strokeLinecap='round' />
+                <path d='M13 18c0-2.2 1.8-4 4-4s4 1.8 4 4' stroke='#00e5a0' strokeWidth='2' strokeLinecap='round' />
+            </svg>
+        ),
+        label: 'Copy Trading',
+    },
 ];
 
 export default function ChunkLoader({ message }: { message: string }) {
@@ -22,30 +56,30 @@ export default function ChunkLoader({ message }: { message: string }) {
         const animate = (ts: number) => {
             if (!startRef.current) startRef.current = ts;
             const elapsed = ts - startRef.current;
-            const target = Math.min((elapsed / 4000) * 100, 98);
+            const target = Math.min((elapsed / 4500) * 100, 97);
             setProgress(target);
             animRef.current = requestAnimationFrame(animate);
         };
         animRef.current = requestAnimationFrame(animate);
-        return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+        return () => {
+            if (animRef.current) cancelAnimationFrame(animRef.current);
+        };
     }, []);
 
     useEffect(() => {
         const interval = setInterval(() => {
             setMsgIndex(prev => (prev + 1) % LOAD_MESSAGES.length);
-        }, 1400);
+        }, 1500);
         return () => clearInterval(interval);
     }, []);
 
-    const p = Math.min(Math.round(progress), 99);
-    const circumference = 2 * Math.PI * 34;
-    const arcLength = (p / 100) * circumference;
+    const p = Math.min(Math.round(progress), 97);
 
     return (
         <div className='splash'>
-            <div className='splash__bg' />
-            <div className='splash__glow splash__glow--1' />
-            <div className='splash__glow splash__glow--2' />
+            <div className='splash__grid' />
+            <div className='splash__glow splash__glow--top' />
+            <div className='splash__glow splash__glow--bottom' />
 
             <div className='splash__content'>
                 <div className='splash__logo-wrap'>
@@ -53,39 +87,35 @@ export default function ChunkLoader({ message }: { message: string }) {
                 </div>
 
                 <h1 className='splash__title'>AHMEDSYNTRADER</h1>
-                <div className='splash__divider' />
-                <p className='splash__tagline'>Advanced Algorithmic Trading Platform</p>
+                <p className='splash__subtitle'>Deriv AI Trading Tool</p>
 
-                <div className='splash__spinner-wrap'>
-                    <svg className='splash__ring' viewBox='0 0 80 80' width='90' height='90'>
-                        <defs>
-                            <linearGradient id='ringGrad' x1='0%' y1='0%' x2='100%' y2='0%'>
-                                <stop offset='0%' stopColor='#4a9fff' />
-                                <stop offset='100%' stopColor='#00e890' />
-                            </linearGradient>
-                        </defs>
-                        <circle cx='40' cy='40' r='34' fill='none' stroke='rgba(74,159,255,0.1)' strokeWidth='3' />
-                        <circle
-                            className='splash__ring-arc'
-                            cx='40'
-                            cy='40'
-                            r='34'
-                            fill='none'
-                            stroke='url(#ringGrad)'
-                            strokeWidth='3.5'
-                            strokeLinecap='round'
-                            strokeDasharray={`${arcLength} ${circumference - arcLength}`}
-                            transform='rotate(-90 40 40)'
-                        />
-                    </svg>
-                    <div className='splash__pct'>{p}%</div>
+                <div className='splash__features'>
+                    {FEATURES.map(f => (
+                        <div className='splash__feature' key={f.label}>
+                            <div className='splash__feature-icon'>
+                                {f.icon}
+                            </div>
+                            <span className='splash__feature-label'>{f.label}</span>
+                        </div>
+                    ))}
                 </div>
 
-                <p className='splash__msg' key={msgIndex}>{LOAD_MESSAGES[msgIndex]}</p>
-                <p className='splash__sub-msg'>{message || 'Syncing neural pathways'}</p>
-            </div>
+                <div className='splash__bar-wrap'>
+                    <div className='splash__bar'>
+                        <div className='splash__bar-fill' style={{ width: `${p}%` }} />
+                        <div className='splash__bar-glow' style={{ left: `calc(${p}% - 4px)` }} />
+                    </div>
+                </div>
 
-            <div className='splash__version'>v2.0.0 — Quantum Edition</div>
+                <p className='splash__msg' key={msgIndex}>
+                    {LOAD_MESSAGES[msgIndex]}
+                </p>
+                {message && message !== 'Loading...' && (
+                    <p className='splash__sub-msg'>{message}</p>
+                )}
+
+                <p className='splash__powered'>Powered by Deriv</p>
+            </div>
         </div>
     );
 }
