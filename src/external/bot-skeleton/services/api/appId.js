@@ -9,6 +9,8 @@ export const generateDerivApiInstance = () => {
     const cleanedAppId = getAppId()?.replace?.(/[^a-zA-Z0-9]/g, '') ?? getAppId();
     const socket_url = `wss://${cleanedServer}/websockets/v3?app_id=${cleanedAppId}&l=${getInitialLanguage()}&brand=${website_name.toLowerCase()}`;
     const deriv_socket = new WebSocket(socket_url);
+    // Use arraybuffer for lowest-latency binary message processing
+    deriv_socket.binaryType = 'arraybuffer';
     const deriv_api = new DerivAPIBasic({
         connection: deriv_socket,
         middleware: new APIMiddleware({}),
