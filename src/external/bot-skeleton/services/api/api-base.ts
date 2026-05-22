@@ -189,6 +189,20 @@ class APIBase {
             localStorage.setItem('client_account_details', JSON.stringify(authorize?.account_list));
             localStorage.setItem('client.country', authorize?.country);
 
+            /* ── Ensure accountsList always has the active token ───────────────
+             * OAuth login writes accountsList via AuthWrapper before init() runs.
+             * API-token login only writes authToken.  Without this patch,
+             * client.getToken() returns '' and the trade engine throws "Please login"
+             * even though the user IS authenticated.
+             * ─────────────────────────────────────────────────────────────────── */
+            try {
+                const stored: Record<string, string> = JSON.parse(localStorage.getItem('accountsList') ?? '{}');
+                if (!stored[authorize.loginid]) {
+                    stored[authorize.loginid] = this.token;
+                    localStorage.setItem('accountsList', JSON.stringify(stored));
+                }
+            } catch (_) { /* non-critical */ }
+
             if (this.has_active_symbols) {
                 this.toggleRunButton(false);
             } else {
