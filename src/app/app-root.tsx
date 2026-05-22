@@ -8,6 +8,7 @@ import { useStore } from '@/hooks/useStore';
 import useTMB from '@/hooks/useTMB';
 import { localize } from '@deriv-com/translations';
 import './app-root.scss';
+import './global-theme.scss';
 
 const AppContent = lazy(() => import('./app-content'));
 
