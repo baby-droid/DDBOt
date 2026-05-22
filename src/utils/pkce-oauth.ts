@@ -7,16 +7,22 @@ const TURNOVER_SIDC = '2CC4E950-37B6-44E9-80CC-BA2E60E6E630';
 const LEGACY_APP_ID = '113192';
 
 /**
- * Login — uses legacy oauth.deriv.com with app_id=113192.
+ * Login — legacy oauth.deriv.com with app_id=113192.
+ * Scopes: read (account info), trade (buy/sell contracts), trading_information (P&L, history).
  * After login Deriv redirects back with token1/acct1/cur1 query params.
  */
 export function loginWithPKCE() {
-    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${LEGACY_APP_ID}&l=EN&brand=deriv`;
+    const params = new URLSearchParams({
+        app_id: LEGACY_APP_ID,
+        l: 'EN',
+        brand: 'deriv',
+        scope: 'read trade trading_information',
+    });
+    window.location.href = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
 }
 
 /**
- * Sign Up — opens the partner affiliate registration page so the user
- * registers under the AHMEDSYNTRADER affiliate account.
+ * Sign Up — opens the partner affiliate registration page.
  */
 export function signUpWithPKCE() {
     window.open(
