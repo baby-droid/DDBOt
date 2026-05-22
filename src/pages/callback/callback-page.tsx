@@ -1,260 +1,246 @@
 import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
-import { crypto_currencies_display_order, fiat_currencies_display_order } from '@/components/shared';
 import { generateDerivApiInstance } from '@/external/bot-skeleton/services/api/appId';
-import { observer as globalObserver } from '@/external/bot-skeleton/utils/observer';
-import useTMB from '@/hooks/useTMB';
-import { clearAuthData } from '@/utils/auth-utils';
 import { storeMCPToken } from '@/utils/mcp-api';
 import { Callback } from '@deriv-com/auth-client';
 import { Button } from '@deriv-com/ui';
 
-const APP_CLIENT_ID = '113192';
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Shared spinner used by every handler
+ * ───────────────────────────────────────────────────────────────────────────── */
+const Spinner = ({ label = 'Completing sign in…' }: { label?: string }) => (
+    <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '100vh',
+        background: '#07111f', color: '#a8d4f5', gap: '18px', padding: '32px',
+    }}>
+        <div style={{
+            width: 52, height: 52,
+            border: '3px solid rgba(0,212,255,0.25)',
+            borderTopColor: '#00d4ff',
+            borderRadius: '50%',
+            animation: 'cbSpin 0.75s linear infinite',
+        }} />
+        <p style={{ margin: 0, fontSize: '0.95rem', letterSpacing: '0.03em' }}>{label}</p>
+        <style>{`@keyframes cbSpin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+);
 
-const getSelectedCurrency = (
-    tokens: Record<string, string>,
-    clientAccounts: Record<string, any>,
-    state: any
-): string => {
-    const getQueryParams = new URLSearchParams(window.location.search);
-    const currency =
-        (state && state?.account) ||
-        getQueryParams.get('account') ||
-        sessionStorage.getItem('query_param_currency') ||
-        '';
-    const firstAccountKey = tokens.acct1;
-    const firstAccountCurrency = clientAccounts[firstAccountKey]?.currency;
+const ErrorScreen = ({ msg, onRetry }: { msg: string; onRetry?: () => void }) => (
+    <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '100vh',
+        background: '#07111f', color: '#a8d4f5', gap: '16px', padding: '32px',
+    }}>
+        <div style={{ fontSize: '2.5rem' }}>⚠️</div>
+        <h2 style={{
+            color: '#ff7b7b', margin: 0, fontSize: '1.1rem',
+            background: 'none', padding: 0, borderRadius: 0,
+        }}>Login Failed</h2>
+        <p style={{ margin: 0, textAlign: 'center', maxWidth: 420, fontSize: '0.88rem', color: 'rgba(168,212,245,0.75)' }}>{msg}</p>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {onRetry && (
+                <Button onClick={onRetry}>Try Again</Button>
+            )}
+            <Button onClick={() => { window.location.href = '/'; }}>
+                Return to AHMEDSYNTRADER
+            </Button>
+        </div>
+    </div>
+);
 
-    const validCurrencies = [...fiat_currencies_display_order, ...crypto_currencies_display_order];
-    if (tokens.acct1?.startsWith('VR') || currency === 'demo') return 'demo';
-    if (currency && validCurrencies.includes(currency.toUpperCase())) return currency;
-    return firstAccountCurrency || 'USD';
-};
-
-const PKCECallbackHandler = () => {
-    const [status, setStatus] = useState<'loading' | 'error'>('loading');
-    const [errorMsg, setErrorMsg] = useState('');
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Handler 1 – Legacy Deriv OAuth  (?token1=…&acct1=…&cur1=…)
+ * This is what oauth.deriv.com sends back after login with app_id=113192
+ * ───────────────────────────────────────────────────────────────────────────── */
+const LegacyOAuthHandler = () => {
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        const handlePKCECallback = async () => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const accountsList: Record<string, string> = {};
+            const clientAccounts: Record<string, { loginid: string; token: string; currency: string }> = {};
+
+            let i = 1;
+            while (params.has(`token${i}`) && params.has(`acct${i}`)) {
+                const token = params.get(`token${i}`) ?? '';
+                const acct = params.get(`acct${i}`) ?? '';
+                const cur = params.get(`cur${i}`) ?? '';
+                if (token && acct) {
+                    accountsList[acct] = token;
+                    clientAccounts[acct] = { loginid: acct, token, currency: cur };
+                }
+                i++;
+            }
+
+            const firstToken = params.get('token1') ?? '';
+            const firstAcct = params.get('acct1') ?? '';
+            const firstCur = params.get('cur1') ?? 'USD';
+
+            if (!firstToken || !firstAcct) {
+                setError('No valid tokens found in the OAuth response. Please try logging in again.');
+                return;
+            }
+
+            localStorage.setItem('accountsList', JSON.stringify(accountsList));
+            localStorage.setItem('clientAccounts', JSON.stringify(clientAccounts));
+            localStorage.setItem('authToken', firstToken);
+            localStorage.setItem('active_loginid', firstAcct);
+            localStorage.setItem('callback_token', firstToken);
+            storeMCPToken(firstToken);
+
+            const isDemo = firstAcct.startsWith('VR') || firstAcct.startsWith('VRW');
+            const account = isDemo ? 'demo' : firstCur;
+
+            window.history.replaceState({}, '', '/');
+            window.location.replace(`/?account=${account}`);
+        } catch (err: any) {
+            setError(err?.message ?? 'Unexpected error during login. Please try again.');
+        }
+    }, []);
+
+    if (error) return <ErrorScreen msg={error} onRetry={() => { window.location.href = '/'; }} />;
+    return <Spinner label='Signing you in via Deriv…' />;
+};
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Handler 2 – PKCE / auth.deriv.com  (?code=…&state=…)
+ * ───────────────────────────────────────────────────────────────────────────── */
+const PKCECallbackHandler = () => {
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        (async () => {
             const params = new URLSearchParams(window.location.search);
             const code = params.get('code');
             const returnedState = params.get('state');
             const errorParam = params.get('error');
 
             if (errorParam) {
-                setStatus('error');
-                setErrorMsg(`Authentication failed: ${params.get('error_description') || errorParam}`);
+                setError(`Authentication failed: ${params.get('error_description') || errorParam}`);
                 return;
             }
-
             if (!code) {
-                setStatus('error');
-                setErrorMsg('No authorization code received.');
+                setError('No authorization code received.');
                 return;
             }
-
             const storedState = sessionStorage.getItem('oauth_state');
             const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
-
             if (!storedState || storedState !== returnedState) {
-                setStatus('error');
-                setErrorMsg('State mismatch — possible CSRF attack. Please try again.');
+                setError('State mismatch — possible CSRF. Please try logging in again.');
                 return;
             }
-
             if (!codeVerifier) {
-                setStatus('error');
-                setErrorMsg('Missing code verifier. Please try logging in again.');
+                setError('Missing code verifier. Please try logging in again.');
                 return;
             }
-
             try {
-                const redirectUri = window.location.origin + '/callback';
                 const body = new URLSearchParams({
                     grant_type: 'authorization_code',
-                    client_id: APP_CLIENT_ID,
+                    client_id: '113192',
                     code,
                     code_verifier: codeVerifier,
-                    redirect_uri: redirectUri,
+                    redirect_uri: window.location.origin + '/callback',
                 });
-
-                const tokenResponse = await fetch('https://auth.deriv.com/oauth2/token', {
+                const res = await fetch('https://auth.deriv.com/oauth2/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: body.toString(),
                 });
-
                 sessionStorage.removeItem('pkce_code_verifier');
                 sessionStorage.removeItem('oauth_state');
-
-                if (!tokenResponse.ok) {
-                    const errData = await tokenResponse.json().catch(() => ({}));
-                    throw new Error(errData.error_description || `Token exchange failed: ${tokenResponse.status}`);
+                if (!res.ok) {
+                    const d = await res.json().catch(() => ({}));
+                    throw new Error(d.error_description || `Token exchange failed (${res.status})`);
                 }
-
-                const tokenData = await tokenResponse.json();
-                const accessToken: string = tokenData.access_token;
-
+                const data = await res.json();
+                const accessToken: string = data.access_token;
                 storeMCPToken(accessToken);
-
-                const api = await generateDerivApiInstance();
-                if (api) {
-                    const { authorize, error } = await api.authorize(accessToken);
-                    api.disconnect();
-
-                    if (!error && authorize?.account_list?.length) {
-                        const firstAccount = authorize.account_list[0];
-                        localStorage.setItem('authToken', accessToken);
-                        localStorage.setItem('active_loginid', firstAccount.loginid);
-                        localStorage.setItem('callback_token', accessToken);
-
-                        const accountsList: Record<string, string> = {};
-                        authorize.account_list.forEach((acc: any) => {
-                            accountsList[acc.loginid] = accessToken;
-                        });
-                        localStorage.setItem('accountsList', JSON.stringify(accountsList));
-
-                        const isDemo = firstAccount.loginid?.startsWith('VR') || firstAccount.loginid?.startsWith('VRW');
-                        const currency = isDemo ? 'demo' : (firstAccount.currency || 'USD');
-                        window.location.replace(window.location.origin + `/bot/?account=${currency}`);
-                        return;
-                    }
+                const api = generateDerivApiInstance();
+                const { authorize, error: authErr } = await api.authorize(accessToken);
+                api.disconnect();
+                if (!authErr && authorize?.account_list?.length) {
+                    const first = authorize.account_list[0];
+                    localStorage.setItem('authToken', accessToken);
+                    localStorage.setItem('active_loginid', first.loginid);
+                    const acctList: Record<string, string> = {};
+                    authorize.account_list.forEach((a: any) => { acctList[a.loginid] = accessToken; });
+                    localStorage.setItem('accountsList', JSON.stringify(acctList));
+                    const isDemo = first.loginid?.startsWith('VR');
+                    window.location.replace(`/?account=${isDemo ? 'demo' : (first.currency || 'USD')}`);
+                    return;
                 }
-
                 localStorage.setItem('authToken', accessToken);
-                window.location.replace(window.location.origin + '/bot/');
+                window.location.replace('/');
             } catch (err: any) {
-                console.error('PKCE token exchange error:', err);
-                setStatus('error');
-                setErrorMsg(err.message || 'Authentication failed. Please try again.');
+                setError(err?.message || 'Authentication failed. Please try again.');
             }
-        };
-
-        handlePKCECallback();
+        })();
     }, []);
 
-    if (status === 'error') {
-        return (
-            <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: 'center', minHeight: '100vh',
-                background: '#07111f', color: '#a8d4f5',
-                gap: '16px', padding: '32px',
-            }}>
-                <h2 style={{ color: '#ff6b6b' }}>Login Error</h2>
-                <p>{errorMsg}</p>
-                <Button onClick={() => { window.location.href = '/'; }}>
-                    Return to AHMEDSYNTRADER
-                </Button>
-            </div>
-        );
-    }
-
-    return (
-        <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', minHeight: '100vh',
-            background: '#07111f', color: '#a8d4f5', gap: '16px',
-        }}>
-            <div style={{
-                width: 48, height: 48, border: '3px solid #00d4ff',
-                borderTopColor: 'transparent', borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-            }} />
-            <p>Completing sign in…</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-    );
+    if (error) return <ErrorScreen msg={error} onRetry={() => { window.location.href = '/'; }} />;
+    return <Spinner label='Exchanging authorization code…' />;
 };
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Handler 3 – OIDC / @deriv-com/auth-client Callback
+ * ───────────────────────────────────────────────────────────────────────────── */
+const OIDCCallbackHandler = () => (
+    <Callback
+        onSignInSuccess={async (tokens: Record<string, string>) => {
+            const accountsList: Record<string, string> = {};
+            const clientAccounts: Record<string, { loginid: string; token: string; currency: string }> = {};
+
+            for (const [key, value] of Object.entries(tokens)) {
+                if (key.startsWith('acct')) {
+                    const tokenKey = key.replace('acct', 'token');
+                    if (tokens[tokenKey]) {
+                        accountsList[value] = tokens[tokenKey];
+                        clientAccounts[value] = { loginid: value, token: tokens[tokenKey], currency: '' };
+                    }
+                } else if (key.startsWith('cur')) {
+                    const accKey = key.replace('cur', 'acct');
+                    if (tokens[accKey] && clientAccounts[tokens[accKey]]) {
+                        clientAccounts[tokens[accKey]].currency = value;
+                    }
+                }
+            }
+
+            localStorage.setItem('accountsList', JSON.stringify(accountsList));
+            localStorage.setItem('clientAccounts', JSON.stringify(clientAccounts));
+            localStorage.setItem('authToken', tokens.token1 ?? '');
+            localStorage.setItem('active_loginid', tokens.acct1 ?? '');
+
+            const isDemo = tokens.acct1?.startsWith('VR');
+            const cur = tokens.cur1 || 'USD';
+            window.location.replace(`/?account=${isDemo ? 'demo' : cur}`);
+        }}
+        renderReturnButton={() => (
+            <Button onClick={() => { window.location.href = '/'; }}>
+                Return to AHMEDSYNTRADER
+            </Button>
+        )}
+    />
+);
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Router — detects which flow to use
+ * ───────────────────────────────────────────────────────────────────────────── */
 const CallbackPage = () => {
     const params = new URLSearchParams(window.location.search);
-    const isPKCECallback = params.has('code') && sessionStorage.getItem('pkce_code_verifier');
 
-    if (isPKCECallback) {
+    // Legacy Deriv OAuth: token1 + acct1 in URL
+    if (params.has('token1') && params.has('acct1')) {
+        return <LegacyOAuthHandler />;
+    }
+
+    // PKCE: code in URL + verifier in sessionStorage
+    if (params.has('code') && sessionStorage.getItem('pkce_code_verifier')) {
         return <PKCECallbackHandler />;
     }
 
-    return (
-        <Callback
-            onSignInSuccess={async (tokens: Record<string, string>, rawState: unknown) => {
-                const state = rawState as { account?: string } | null;
-                const accountsList: Record<string, string> = {};
-                const clientAccounts: Record<string, { loginid: string; token: string; currency: string }> = {};
-
-                for (const [key, value] of Object.entries(tokens)) {
-                    if (key.startsWith('acct')) {
-                        const tokenKey = key.replace('acct', 'token');
-                        if (tokens[tokenKey]) {
-                            accountsList[value] = tokens[tokenKey];
-                            clientAccounts[value] = {
-                                loginid: value,
-                                token: tokens[tokenKey],
-                                currency: '',
-                            };
-                        }
-                    } else if (key.startsWith('cur')) {
-                        const accKey = key.replace('cur', 'acct');
-                        if (tokens[accKey]) {
-                            clientAccounts[tokens[accKey]].currency = value;
-                        }
-                    }
-                }
-
-                localStorage.setItem('accountsList', JSON.stringify(accountsList));
-                localStorage.setItem('clientAccounts', JSON.stringify(clientAccounts));
-
-                let is_token_set = false;
-
-                const api = await generateDerivApiInstance();
-                if (api) {
-                    const { authorize, error } = await api.authorize(tokens.token1);
-                    api.disconnect();
-                    if (error) {
-                        if (error.code === 'InvalidToken') {
-                            is_token_set = true;
-                            const { is_tmb_enabled = false } = useTMB();
-                            if (Cookies.get('logged_state') === 'true' && !is_tmb_enabled) {
-                                globalObserver.emit('InvalidToken', { error });
-                            }
-                            if (Cookies.get('logged_state') === 'false') {
-                                clearAuthData();
-                            }
-                        }
-                    } else {
-                        localStorage.setItem('callback_token', authorize.toString());
-                        const clientAccountsArray = Object.values(clientAccounts);
-                        const firstId = authorize?.account_list[0]?.loginid;
-                        const filteredTokens = clientAccountsArray.filter(account => account.loginid === firstId);
-                        if (filteredTokens.length) {
-                            localStorage.setItem('authToken', filteredTokens[0].token);
-                            localStorage.setItem('active_loginid', filteredTokens[0].loginid);
-                            is_token_set = true;
-                        }
-                    }
-                }
-                if (!is_token_set) {
-                    localStorage.setItem('authToken', tokens.token1);
-                    localStorage.setItem('active_loginid', tokens.acct1);
-                }
-                const selected_currency = getSelectedCurrency(tokens, clientAccounts, state);
-                window.location.replace(window.location.origin + `bot/?account=${selected_currency}`);
-            }}
-            renderReturnButton={() => {
-                return (
-                    <Button
-                        className='callback-return-button'
-                        onClick={() => {
-                            window.location.href = '/';
-                        }}
-                    >
-                        {'Return to AHMEDSYNTRADER'}
-                    </Button>
-                );
-            }}
-        />
-    );
+    // OIDC / default
+    return <OIDCCallbackHandler />;
 };
 
 export default CallbackPage;
