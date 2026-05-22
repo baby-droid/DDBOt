@@ -137,41 +137,9 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                 <div className='auth-actions'>
                     <Button
                         tertiary
-                        onClick={async () => {
-                            clearAuthData(false);
-                            const getQueryParams = new URLSearchParams(window.location.search);
-                            const currency = getQueryParams.get('account') ?? '';
-                            const query_param_currency =
-                                currency || sessionStorage.getItem('query_param_currency') || 'USD';
-
-                            try {
-                                // First, explicitly wait for TMB status to be determined
-                                const tmbEnabled = await isTmbEnabled();
-                                // Now use the result of the explicit check
-                                if (tmbEnabled) {
-                                    await onRenderTMBCheck(true); // Pass true to indicate it's from login button
-                                } else {
-                                    // Always use OIDC if TMB is not enabled
-                                    try {
-                                        await requestOidcAuthentication({
-                                            redirectCallbackUri: `${window.location.origin}/callback`,
-                                            ...(query_param_currency
-                                                ? {
-                                                      state: {
-                                                          account: query_param_currency,
-                                                      },
-                                                  }
-                                                : {}),
-                                        });
-                                    } catch (err) {
-                                        handleOidcAuthFailure(err);
-                                        window.location.replace(generateOAuthURL());
-                                    }
-                                }
-                            } catch (error) {
-                                // eslint-disable-next-line no-console
-                                console.error(error);
-                            }
+                        onClick={() => {
+                            window.location.href =
+                                'https://oauth.deriv.com/oauth2/authorize?app_id=113192&brand=deriv&redirect=home&state=91F23ue%7EX0TKmLenTqUhoOVObbDq76uu';
                         }}
                     >
                         <Localize i18n_default_text='Log in' />
@@ -179,7 +147,9 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                     <Button
                         primary
                         onClick={() => {
-                            window.open(standalone_routes.signup);
+                            window.open(
+                                'https://deriv.partners/rx?sidc=FB2222B6-32C3-45C3-96DC-044951ADF2B6&utm_campaign=dynamicworks&utm_medium=affiliate&utm_source=CU304029'
+                            );
                         }}
                     >
                         <Localize i18n_default_text='Sign up' />

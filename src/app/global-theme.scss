@@ -1,0 +1,460 @@
+/* ═══════════════════════════════════════════════════
+   AHMEDSYNTRADER — Global Dark Navy / Pale Blue Theme
+   ═══════════════════════════════════════════════════ */
+
+/* Force CSS variable overrides on all theme classes */
+:root,
+.theme--light,
+.theme--dark,
+body {
+    --general-main-1: #07111f !important;
+    --general-main-2: #0b1a2e !important;
+    --general-main-3: #0f2040 !important;
+    --general-main-4: rgba(0, 180, 255, 0.06) !important;
+    --general-section-1: #0d1e35 !important;
+    --general-section-2: #091525 !important;
+    --general-section-3: #0b1c30 !important;
+    --general-section-4: #0d2040 !important;
+    --general-section-5: #1a2f4a !important;
+    --general-section-6: #1e3654 !important;
+    --general-disabled: #1a2f4a !important;
+    --general-hover: #112035 !important;
+    --general-active: #16294a !important;
+
+    /* Text — pale blue family */
+    --text-general: #a8d4f5 !important;
+    --text-prominent: #c8e8ff !important;
+    --text-primary: #7ab8e8 !important;
+    --text-less-prominent: #7ab8e8 !important;
+    --text-disabled: #3a6080 !important;
+    --text-disabled-1: #2d5070 !important;
+    --text-loss-danger: #ff6b6b !important;
+    --text-profit-success: #00e890 !important;
+    --text-warning: #f4c430 !important;
+    --text-hint: #a8d4f5 !important;
+
+    /* Borders */
+    --border-normal: #1a3a5c !important;
+    --border-normal-1: #1a3a5c !important;
+    --border-normal-2: #1e4060 !important;
+    --border-normal-3: #224468 !important;
+    --border-hover: #2a6090 !important;
+    --border-active: #00b4d8 !important;
+    --border-disabled: #1a2f4a !important;
+    --border-divider: #122030 !important;
+
+    /* Shadows */
+    --shadow-menu: rgba(0, 20, 60, 0.7) !important;
+    --shadow-menu-2: rgba(0, 20, 60, 0.7) !important;
+    --shadow-drop: rgba(0, 0, 0, 0.5) !important;
+
+    /* States */
+    --state-normal: #07111f !important;
+    --state-hover: #0f2040 !important;
+    --state-active: #16294a !important;
+
+    /* Buttons — keep primary red for Sign Up only */
+    --button-secondary-default: #1a3a5c !important;
+    --button-tertiary-default: transparent !important;
+    --button-secondary-hover: rgba(0, 180, 255, 0.12) !important;
+    --button-tertiary-hover: rgba(0, 180, 255, 0.08) !important;
+}
+
+/* ── Body & HTML root ── */
+html,
+body {
+    background-color: #07111f !important;
+    color: #a8d4f5 !important;
+}
+
+/* ── Layout wrappers ── */
+.layout,
+.bot-dashboard,
+.app-content,
+.deriv-header,
+.dc-themed-scrollbars {
+    background-color: #07111f !important;
+    color: #a8d4f5 !important;
+}
+
+/* ── Header bar ── */
+.deriv-header {
+    background: linear-gradient(180deg, #061018 0%, #08151f 100%) !important;
+    border-bottom: 1px solid rgba(0, 180, 255, 0.15) !important;
+    box-shadow: 0 2px 20px rgba(0, 100, 200, 0.15) !important;
+}
+
+/* Logo area */
+.deriv-header__logo,
+.app-logo,
+.platform-switcher__icon {
+    filter: brightness(1.1) !important;
+}
+
+/* ── Platform switcher (top-left deriv bot label) ── */
+.platform-switcher {
+    background: rgba(0, 30, 60, 0.6) !important;
+    border: 1px solid rgba(0, 180, 255, 0.2) !important;
+    border-radius: 8px !important;
+
+    &__title,
+    span,
+    p {
+        color: #7adcff !important;
+    }
+}
+
+/* ── Auth buttons (Log in / Sign up) ── */
+.auth-actions {
+    button {
+        font-weight: 600 !important;
+        letter-spacing: 0.03em !important;
+    }
+
+    /* Log In — pale blue ghost */
+    button:first-child {
+        color: #7adcff !important;
+        border: 1.5px solid rgba(0, 200, 255, 0.45) !important;
+        background: rgba(0, 160, 255, 0.08) !important;
+        border-radius: 6px !important;
+
+        &:hover {
+            background: rgba(0, 180, 255, 0.18) !important;
+            border-color: rgba(0, 220, 255, 0.7) !important;
+            box-shadow: 0 0 14px rgba(0, 200, 255, 0.3) !important;
+        }
+    }
+
+    /* Sign Up — keep standout but teal-ish */
+    button:last-child {
+        background: linear-gradient(135deg, #0066cc, #0099cc) !important;
+        border: none !important;
+        border-radius: 6px !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 12px rgba(0, 150, 255, 0.35) !important;
+
+        &:hover {
+            background: linear-gradient(135deg, #0077dd, #00aadd) !important;
+            box-shadow: 0 4px 20px rgba(0, 180, 255, 0.45) !important;
+        }
+    }
+}
+
+/* ── Tab bar (inner navigation) ── */
+.main__tabs,
+.dc-tabs,
+.dc-tabs__list,
+.derivs-secondary-tabs {
+    background: #08141f !important;
+    border-bottom: 1px solid rgba(0, 180, 255, 0.12) !important;
+}
+
+/* Tab items — pale blue */
+.dc-tabs__item,
+.derivs-tabs__item,
+[class*='tab__label'],
+[class*='tabs__item'] {
+    color: #6db8e0 !important;
+    font-weight: 500 !important;
+    transition: color 0.2s, border-color 0.2s !important;
+
+    &:hover {
+        color: #a8d4f5 !important;
+        background: rgba(0, 160, 255, 0.06) !important;
+    }
+
+    svg path,
+    svg g path {
+        fill: #6db8e0 !important;
+    }
+}
+
+/* Active tab — bright pale blue + underline */
+.dc-tabs__item--active,
+.derivs-tabs__item--active,
+[class*='tab__label--active'],
+[class*='tabs__item--active'] {
+    color: #00d4ff !important;
+    border-bottom-color: #00d4ff !important;
+
+    svg path,
+    svg g path {
+        fill: #00d4ff !important;
+    }
+}
+
+.dc-tabs__active-line {
+    background: #00d4ff !important;
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.6) !important;
+}
+
+/* Tab wrappers with icons */
+.main__container {
+    background: #07111f !important;
+}
+
+/* ── Dashboard / main body ── */
+.dashboard,
+.dashboard__wrapper,
+.bot-dashboard__wrapper,
+.dashboard__container,
+.free-bots-wrapper,
+.analysis-tool-wrapper,
+.auto-trade-wrapper,
+.tutorials-wrapper,
+.charts-wrapper {
+    background: #07111f !important;
+}
+
+/* ── Card elements on dashboard ── */
+.dashboard__upload-box,
+.dc-input,
+.dc-dropdown,
+.dc-dropdown__list,
+.dc-dropdown-list,
+.dc-input-wrapper {
+    background: #0b1e35 !important;
+    border-color: rgba(0, 160, 255, 0.2) !important;
+    color: #a8d4f5 !important;
+}
+
+/* ── Bot list / strategy table ── */
+.strategy,
+.strategy__action,
+.dashboard__strategy-list,
+.strategy-list__item,
+.dc-table__row {
+    background: #0b1e35 !important;
+    border-bottom: 1px solid rgba(0, 160, 255, 0.1) !important;
+    color: #a8d4f5 !important;
+}
+
+/* ── Run panel & bottom bar ── */
+.run-panel,
+.run-panel__wrapper,
+.run-strategy,
+.run-strategy__container {
+    background: #061018 !important;
+    border-top: 1px solid rgba(0, 180, 255, 0.15) !important;
+    color: #a8d4f5 !important;
+}
+
+/* RUN button — neon teal when idle, green when running */
+.run-panel__run-button,
+.btn-purchase--rise,
+button[data-testid='dt_run_button'],
+.run-strategy__run-button {
+    background: linear-gradient(135deg, #005b96, #00aad4) !important;
+    border: none !important;
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0, 160, 220, 0.4) !important;
+
+    &:hover {
+        background: linear-gradient(135deg, #0070bb, #00c4ef) !important;
+        box-shadow: 0 4px 20px rgba(0, 200, 255, 0.5) !important;
+    }
+}
+
+/* Running state — emerald green */
+.run-panel__run-button--active,
+[class*='run-button--stop'],
+[class*='stop-button'] {
+    background: linear-gradient(135deg, #006644, #00aa66) !important;
+    box-shadow: 0 2px 12px rgba(0, 200, 100, 0.4) !important;
+}
+
+/* ── Bot running — font color becomes green ── */
+.bot-running,
+[data-bot-running='true'],
+.summary-card--running,
+.run-panel--running {
+    color: #00e890 !important;
+
+    .dc-text,
+    span,
+    p,
+    label {
+        color: #00e890 !important;
+    }
+}
+
+/* ── Blockly / Bot builder area ── */
+.bot-builder,
+#scratch_div,
+.blockly-workspace,
+.scratch-div__top {
+    background: #060f1c !important;
+}
+
+/* ── Scratch sidebar ── */
+.scratch-div__top,
+.bot-builder__blocks-panel,
+.toolbox {
+    background: #091525 !important;
+    border-right: 1px solid rgba(0, 160, 255, 0.15) !important;
+    color: #7ab8e8 !important;
+}
+
+/* ── Panels / Modals / Drawers ── */
+.dc-modal__container,
+.dc-flyout,
+.dc-drawer,
+.dc-drawer__container,
+.quick-strategy__form,
+.quick-strategy__container {
+    background: #0b1e35 !important;
+    border: 1px solid rgba(0, 160, 255, 0.2) !important;
+    color: #a8d4f5 !important;
+}
+
+.dc-modal__header {
+    background: #07111f !important;
+    border-bottom: 1px solid rgba(0, 160, 255, 0.15) !important;
+    color: #c8e8ff !important;
+}
+
+/* ── Context menu / Dropdowns ── */
+.dc-context-menu,
+.dc-dropdown__items,
+.deriv-context-menu {
+    background: #0d1e35 !important;
+    border: 1px solid rgba(0, 160, 255, 0.2) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+    color: #a8d4f5 !important;
+}
+
+.dc-dropdown__item:hover,
+.dc-context-menu__item:hover {
+    background: rgba(0, 160, 255, 0.1) !important;
+    color: #00d4ff !important;
+}
+
+/* ── Scroll bars ── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #07111f;
+}
+::-webkit-scrollbar-thumb {
+    background: #1a4060;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #0080c0;
+}
+
+/* ── Icon fills — make them pale blue globally ── */
+.deriv-header svg path,
+.menu-items svg path,
+.app-header__menu svg path {
+    fill: #6db8e0 !important;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 {
+    color: #c8e8ff !important;
+}
+
+p, span, label, td, th, li {
+    color: #a8d4f5;
+}
+
+/* ── Quill UI overrides ── */
+.derivs-text,
+.deriv-text,
+[class*='deriv-text'],
+[class*='derivs-text'] {
+    color: #a8d4f5 !important;
+}
+
+/* ── Footer ── */
+.footer,
+.layout__footer {
+    background: #04090f !important;
+    border-top: 1px solid rgba(0, 160, 255, 0.12) !important;
+    color: #4a7090 !important;
+}
+
+/* ── Menu items in header (top tabs / nav links) ── */
+.menu-items__list-item,
+.menu-items__link,
+.header-menu-item,
+[class*='menu-items'] a,
+[class*='menu-items'] span {
+    color: #7adcff !important;
+
+    &:hover,
+    &--active {
+        color: #00d4ff !important;
+    }
+}
+
+/* ── Quill-UI Header inner items ── */
+.deriv-header__content,
+.deriv-header__navigation a,
+.deriv-header span {
+    color: #a8d4f5 !important;
+}
+
+/* Trader's Hub link */
+.deriv-header__traders-hub,
+[class*='traders-hub'] {
+    color: #7adcff !important;
+}
+
+/* ── Account info ── */
+.account-info,
+.account-info__id,
+.account-info__balance {
+    color: #a8d4f5 !important;
+}
+
+/* ── Summary card stats (profit/loss) ── */
+.summary-card__total-profit,
+.dc-profit-loss--profit {
+    color: #00e890 !important;
+    text-shadow: 0 0 8px rgba(0, 232, 144, 0.4) !important;
+}
+
+.summary-card__total-loss,
+.dc-profit-loss--loss {
+    color: #ff6b6b !important;
+}
+
+/* ── Tabs inside the bot builder page ── */
+.run-panel__tabs,
+.run-panel__tabs .dc-tabs__item {
+    background: #07111f !important;
+    color: #6db8e0 !important;
+}
+
+.run-panel__tabs .dc-tabs__item--active {
+    color: #00d4ff !important;
+}
+
+/* ── Glassmorphism cards ── */
+.dashboard__info-box,
+.dashboard__card {
+    background: rgba(10, 25, 50, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(0, 160, 255, 0.15) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ── Quick strategy button ── */
+.quick-strategy__button {
+    background: linear-gradient(135deg, #004d80, #0088bb) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 2px 10px rgba(0, 150, 200, 0.3) !important;
+}
+
+/* ── Ensure white/light backgrounds from Quill get overridden ── */
+[class*='deriv-'][style*='background: white'],
+[class*='deriv-'][style*='background: #fff'],
+[class*='deriv-'][style*='background-color: white'],
+[class*='deriv-'][style*='background-color: #fff'] {
+    background: #0b1e35 !important;
+}
