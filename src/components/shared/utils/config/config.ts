@@ -10,6 +10,7 @@ export const APP_IDS = {
     PRODUCTION: 65555,
     PRODUCTION_BE: 65556,
     PRODUCTION_ME: 65557,
+    AHMEDSYNTRADER: 113192,
 };
 
 export const livechat_license_id = 12049137;
@@ -23,6 +24,7 @@ export const domain_app_ids = {
     'dbot.deriv.com': APP_IDS.PRODUCTION,
     'dbot.deriv.be': APP_IDS.PRODUCTION_BE,
     'dbot.deriv.me': APP_IDS.PRODUCTION_ME,
+    'ahmedsyntrader--brianmkarimi2.replit.app': APP_IDS.AHMEDSYNTRADER,
 };
 
 export const getCurrentProductionDomain = () =>

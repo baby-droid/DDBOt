@@ -138,8 +138,7 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                     <Button
                         tertiary
                         onClick={() => {
-                            window.location.href =
-                                'https://oauth.deriv.com/oauth2/authorize?app_id=113192&brand=deriv&redirect=home&state=91F23ue%7EX0TKmLenTqUhoOVObbDq76uu';
+                            import('@/utils/pkce-oauth').then(({ loginWithPKCE }) => loginWithPKCE());
                         }}
                     >
                         <Localize i18n_default_text='Log in' />
@@ -147,9 +146,7 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                     <Button
                         primary
                         onClick={() => {
-                            window.open(
-                                'https://deriv.partners/rx?sidc=FB2222B6-32C3-45C3-96DC-044951ADF2B6&utm_campaign=dynamicworks&utm_medium=affiliate&utm_source=CU304029'
-                            );
+                            import('@/utils/pkce-oauth').then(({ signUpWithPKCE }) => signUpWithPKCE());
                         }}
                     >
                         <Localize i18n_default_text='Sign up' />
