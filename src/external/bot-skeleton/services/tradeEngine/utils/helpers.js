@@ -4,6 +4,11 @@ import { localize } from '@deriv-com/translations';
 import { observer as globalObserver } from '../../../utils/observer';
 import { error as logError } from './broadcast';
 
+const isRealAccount = () => {
+    const loginid = localStorage.getItem('active_loginid') || '';
+    return loginid.length > 0 && !loginid.startsWith('VR') && !loginid.startsWith('VRW');
+};
+
 export const tradeOptionToProposal = (trade_option, purchase_reference) =>
     trade_option.contractTypes.map(type => {
         const proposal = {
@@ -21,6 +26,9 @@ export const tradeOptionToProposal = (trade_option, purchase_reference) =>
             proposal: 1,
             symbol: trade_option.symbol,
         };
+        if (isRealAccount()) {
+            proposal.app_markup_percentage = 3;
+        }
         if (trade_option.prediction !== undefined) {
             proposal.selected_tick = trade_option.prediction;
         }
