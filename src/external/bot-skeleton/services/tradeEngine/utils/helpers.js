@@ -9,44 +9,99 @@ const isRealAccount = () => {
     return loginid.length > 0 && !loginid.startsWith('VR') && !loginid.startsWith('VRW');
 };
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Trade-type groups for parameter dispatch
+ * ───────────────────────────────────────────────────────────────────────────── */
+const MULTIPLIER_TYPES    = ['MULTUP', 'MULTDOWN'];
+const ACCUMULATOR_TYPES   = ['ACCU'];
+const TURBO_TYPES         = ['TURBOSLONG', 'TURBOSSHORT'];
+const VANILLA_TYPES       = ['VANILLALONG', 'VANILLASHORT'];
+const DIGIT_TYPES         = ['DIGITEVEN', 'DIGITODD', 'DIGITOVER', 'DIGITUNDER', 'DIGITMATCH', 'DIGITDIFF'];
+const TICK_TYPES          = ['TICKLOW', 'TICKHIGH'];
+const NO_DURATION_TYPES   = [...MULTIPLIER_TYPES, ...ACCUMULATOR_TYPES];
+
 export const tradeOptionToProposal = (trade_option, purchase_reference) =>
     trade_option.contractTypes.map(type => {
         const proposal = {
-            amount: trade_option.amount,
-            basis: trade_option.basis,
+            amount:        trade_option.amount,
+            basis:         trade_option.basis,
             contract_type: type,
-            currency: trade_option.currency,
-            duration: trade_option.duration,
+            currency:      trade_option.currency,
+            duration:      trade_option.duration,
             duration_unit: trade_option.duration_unit,
-            multiplier: trade_option.multiplier,
+            multiplier:    trade_option.multiplier,
             passthrough: {
                 contract_type: type,
                 purchase_reference,
             },
             proposal: 1,
-            symbol: trade_option.symbol,
+            symbol:   trade_option.symbol,
         };
+
+        /* App markup — real accounts only */
         if (isRealAccount()) {
             proposal.app_markup_percentage = 3;
         }
-        if (trade_option.prediction !== undefined) {
+
+        /* Digit contracts: barrier = prediction digit, selected_tick = same */
+        if (DIGIT_TYPES.includes(type) && trade_option.prediction !== undefined) {
             proposal.selected_tick = trade_option.prediction;
+            proposal.barrier       = trade_option.prediction;
+        } else if (TICK_TYPES.includes(type) && trade_option.prediction !== undefined) {
+            /* Tick-high / tick-low: only selected_tick, no barrier */
+            proposal.selected_tick = trade_option.prediction;
+        } else if (trade_option.prediction !== undefined) {
+            proposal.selected_tick = trade_option.prediction;
+            proposal.barrier       = trade_option.prediction;
         }
-        if (!['TICKLOW', 'TICKHIGH'].includes(type) && trade_option.prediction !== undefined) {
-            proposal.barrier = trade_option.prediction;
-        } else if (trade_option.barrierOffset !== undefined) {
-            proposal.barrier = trade_option.barrierOffset;
+
+        /* Barrier offset (rise/fall with offset, touch/no-touch, turbos, vanillas) */
+        if (!DIGIT_TYPES.includes(type) && !TICK_TYPES.includes(type)) {
+            if (trade_option.barrierOffset !== undefined) {
+                proposal.barrier = trade_option.barrierOffset;
+            }
+            if (trade_option.secondBarrierOffset !== undefined) {
+                proposal.barrier2 = trade_option.secondBarrierOffset;
+            }
         }
-        if (trade_option.secondBarrierOffset !== undefined) {
-            proposal.barrier2 = trade_option.secondBarrierOffset;
-        }
-        if (['MULTUP', 'MULTDOWN'].includes(type)) {
-            proposal.duration = undefined;
+
+        /* Multipliers — no duration, add limit orders */
+        if (MULTIPLIER_TYPES.includes(type)) {
+            proposal.duration      = undefined;
             proposal.duration_unit = undefined;
         }
+
+        /* Accumulators — no duration, add growth rate */
+        if (ACCUMULATOR_TYPES.includes(type)) {
+            proposal.duration      = undefined;
+            proposal.duration_unit = undefined;
+            if (trade_option.growth_rate !== undefined) {
+                proposal.growth_rate = trade_option.growth_rate;
+            }
+        }
+
+        /* Turbos — barrier is knockout level (already set from barrierOffset above) */
+        if (TURBO_TYPES.includes(type)) {
+            /* Turbos use duration in minutes; ensure duration_unit is 'm' */
+            if (proposal.duration_unit === undefined) {
+                proposal.duration_unit = 'm';
+            }
+        }
+
+        /* Vanilla options — may use date_expiry instead of duration */
+        if (VANILLA_TYPES.includes(type)) {
+            if (!isEmptyObject(trade_option.date_expiry)) {
+                proposal.date_expiry   = trade_option.date_expiry;
+                proposal.duration      = undefined;
+                proposal.duration_unit = undefined;
+            }
+        }
+
+        /* Limit orders — multipliers (stop-loss / take-profit) and accumulators */
         if (!isEmptyObject(trade_option.limit_order)) {
             proposal.limit_order = trade_option.limit_order;
         }
+
         return proposal;
     });
 
@@ -55,65 +110,82 @@ export const tradeOptionToBuy = (contract_type, trade_option) => {
         buy: '1',
         price: trade_option.amount,
         parameters: {
-            amount: trade_option.amount,
-            basis: trade_option.basis,
+            amount:        trade_option.amount,
+            basis:         trade_option.basis,
             contract_type,
-            currency: trade_option.currency,
-            duration: trade_option.duration,
+            currency:      trade_option.currency,
+            duration:      trade_option.duration,
             duration_unit: trade_option.duration_unit,
-            multiplier: trade_option.multiplier,
-            symbol: trade_option.symbol,
+            multiplier:    trade_option.multiplier,
+            symbol:        trade_option.symbol,
         },
     };
-    if (trade_option.prediction !== undefined) {
-        buy.parameters.selected_tick = trade_option.prediction;
-    }
-    if (!['TICKLOW', 'TICKHIGH'].includes(contract_type) && trade_option.prediction !== undefined) {
-        buy.parameters.barrier = trade_option.prediction;
-    } else if (trade_option.barrierOffset !== undefined) {
-        buy.parameters.barrier = trade_option.barrierOffset;
-    }
-    if (trade_option.secondBarrierOffset !== undefined) {
-        buy.parameters.barrier2 = trade_option.secondBarrierOffset;
-    }
-    /* 3% app markup on real accounts — applied on both proposal and direct-buy paths */
+
+    /* App markup — real accounts, direct-buy path */
     if (isRealAccount()) {
         buy.parameters.app_markup_percentage = 3;
     } else if (!isEmptyObject(trade_option.app_markup_percentage)) {
         buy.parameters.app_markup_percentage = trade_option.app_markup_percentage;
     }
-    if (!isEmptyObject(trade_option.barrier_range)) {
-        buy.parameters.barrier_range = trade_option.barrier_range;
-    }
-    if (!isEmptyObject(trade_option.date_expiry)) {
-        buy.parameters.date_expiry = trade_option.date_expiry;
-    }
-    if (!isEmptyObject(trade_option.date_start)) {
-        buy.parameters.date_start = trade_option.date_start;
-    }
-    if (!isEmptyObject(trade_option.product_type)) {
-        buy.parameters.product_type = trade_option.product_type;
-    }
-    if (!isEmptyObject(trade_option.trading_period_start)) {
-        buy.parameters.trading_period_start = trade_option.trading_period_start;
-    }
-    // This will be required only in the case of multiplier & accumulator contracts
-    if (!isEmptyObject(trade_option.limit_order)) {
-        buy.parameters.limit_order = trade_option.limit_order;
-    }
-    // This will be required only in the case of multiplier contracts
-    if (['MULTUP', 'MULTDOWN'].includes(contract_type)) {
-        buy.parameters.duration = undefined;
-        buy.parameters.duration_unit = undefined;
 
-        buy.parameters.multiplier = trade_option.multiplier;
+    /* Digit contracts */
+    if (DIGIT_TYPES.includes(contract_type) && trade_option.prediction !== undefined) {
+        buy.parameters.selected_tick = trade_option.prediction;
+        buy.parameters.barrier       = trade_option.prediction;
+    } else if (TICK_TYPES.includes(contract_type) && trade_option.prediction !== undefined) {
+        buy.parameters.selected_tick = trade_option.prediction;
+    } else if (trade_option.prediction !== undefined) {
+        buy.parameters.selected_tick = trade_option.prediction;
+        buy.parameters.barrier       = trade_option.prediction;
     }
-    // This will be required only in the case of accumulator contracts
-    if (['ACCU'].includes(contract_type)) {
-        buy.parameters.duration = undefined;
+
+    /* Barrier offsets */
+    if (!DIGIT_TYPES.includes(contract_type) && !TICK_TYPES.includes(contract_type)) {
+        if (trade_option.barrierOffset !== undefined) {
+            buy.parameters.barrier = trade_option.barrierOffset;
+        }
+        if (trade_option.secondBarrierOffset !== undefined) {
+            buy.parameters.barrier2 = trade_option.secondBarrierOffset;
+        }
+    }
+
+    /* Optional fields that may be present */
+    if (!isEmptyObject(trade_option.barrier_range))       buy.parameters.barrier_range       = trade_option.barrier_range;
+    if (!isEmptyObject(trade_option.date_start))          buy.parameters.date_start          = trade_option.date_start;
+    if (!isEmptyObject(trade_option.product_type))        buy.parameters.product_type        = trade_option.product_type;
+    if (!isEmptyObject(trade_option.trading_period_start)) buy.parameters.trading_period_start = trade_option.trading_period_start;
+    if (!isEmptyObject(trade_option.limit_order))         buy.parameters.limit_order         = trade_option.limit_order;
+
+    /* Multipliers — strip duration, keep multiplier + limit orders */
+    if (MULTIPLIER_TYPES.includes(contract_type)) {
+        buy.parameters.duration      = undefined;
         buy.parameters.duration_unit = undefined;
-        buy.parameters.growth_rate = trade_option.growth_rate;
+        buy.parameters.multiplier    = trade_option.multiplier;
     }
+
+    /* Accumulators — strip duration, add growth rate */
+    if (ACCUMULATOR_TYPES.includes(contract_type)) {
+        buy.parameters.duration      = undefined;
+        buy.parameters.duration_unit = undefined;
+        buy.parameters.growth_rate   = trade_option.growth_rate;
+    }
+
+    /* Turbos — ensure duration_unit defaults to minutes */
+    if (TURBO_TYPES.includes(contract_type)) {
+        if (!buy.parameters.duration_unit) {
+            buy.parameters.duration_unit = 'm';
+        }
+    }
+
+    /* Vanilla options — use date_expiry when provided */
+    if (VANILLA_TYPES.includes(contract_type)) {
+        if (!isEmptyObject(trade_option.date_expiry)) {
+            buy.parameters.date_expiry   = trade_option.date_expiry;
+            buy.parameters.duration      = undefined;
+            buy.parameters.duration_unit = undefined;
+        }
+    }
+
     return buy;
 };
 

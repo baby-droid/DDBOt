@@ -14,7 +14,6 @@ export default Engine =>
         sellAtMarket() {
             globalObserver.emit('bot.sell');
 
-            // Prevent calling sell twice
             if (this.store.getState().scope !== DURING_PURCHASE) {
                 return Promise.resolve();
             }
@@ -29,12 +28,9 @@ export default Engine =>
             return new Promise(resolve => {
                 const onContractSold = sell_response => {
                     delay_index = 1;
-
-                    if (sell_response) {
-                        const { sold_for } = sell_response.sell;
-                        log(LogTypes.SELL, { sold_for });
+                    if (sell_response?.sell) {
+                        log(LogTypes.SELL, { sold_for: sell_response.sell.sold_for });
                     }
-
                     contractStatus('purchase.sold');
                     this.waitForAfter();
                     resolve();
@@ -42,19 +38,13 @@ export default Engine =>
 
                 const contract_id = this.contractId;
 
-                const sellContractAndGetContractInfo = () => {
+                const sellContract = () => {
                     return doUntilDone(() => api_base.api.send({ sell: contract_id, price: 0 }))
-                        .then(sell_response => {
-                            doUntilDone(() => api_base.api.send({ proposal_open_contract: 1, contract_id })).then(
-                                () => sell_response
-                            );
-                        })
                         .catch(e => {
                             const error = e.error;
+
+                            /* Contract expired close to expiry — let it settle naturally */
                             if (error.code === 'InvalidOfferings') {
-                                // "InvalidOfferings" may occur when user tries to sell the contract too close
-                                // to the expiry time. We shouldn't interrupt the bot but instead let the contract
-                                // finish.
                                 return Promise.resolve();
                             }
 
@@ -69,26 +59,18 @@ export default Engine =>
                                 return Promise.reject(sell_error);
                             }
 
-                            // For every other error, check whether the contract is not actually already sold.
+                            /* For all other errors: check if the contract was already sold
+                             * (race condition where the contract expired while we tried to sell) */
                             return doUntilDone(() =>
-                                api_base.api.send({
-                                    proposal_open_contract: 1,
-                                    contract_id,
-                                })
-                            ).then(proposal_open_contract_response => {
-                                const { proposal_open_contract } = proposal_open_contract_response;
-
+                                api_base.api.send({ proposal_open_contract: 1, contract_id })
+                            ).then(poc_res => {
+                                const { proposal_open_contract } = poc_res;
                                 if (!proposal_open_contract.is_sold) {
                                     return Promise.reject(sell_error);
                                 }
-
-                                // If the contract is sold at this point it means there was a race condition.
-                                // Pretend this sell request was successful and mislead the trade engine into
-                                // moving onto the next scope.
+                                /* Contract already closed — mirror as a successful sell */
                                 return Promise.resolve({
-                                    sell: {
-                                        sold_for: proposal_open_contract.sell_price,
-                                    },
+                                    sell: { sold_for: proposal_open_contract.sell_price },
                                 });
                             });
                         });
@@ -96,25 +78,18 @@ export default Engine =>
 
                 const errors_to_ignore = ['NoOpenPosition', 'InvalidSellContractProposal', 'UnrecognisedRequest'];
 
-                // Restart buy/sell on error is enabled, don't recover from sell error.
                 if (!this.options.timeMachineEnabled) {
-                    // eslint-disable-next-line no-promise-executor-return
-                    return doUntilDone(sellContractAndGetContractInfo, errors_to_ignore)
+                    return doUntilDone(sellContract, errors_to_ignore)
                         .then(sell_response => onContractSold(sell_response))
                         .catch(error => error);
                 }
 
-                // If above checkbox not checked, try to recover from sell error.
-                const recoverFn = (error_code, makeDelay) => {
-                    return makeDelay().then(() => this.observer.emit('REVERT', 'during'));
-                };
-                // eslint-disable-next-line no-promise-executor-return
-                return recoverFromError(
-                    sellContractAndGetContractInfo,
-                    recoverFn,
-                    errors_to_ignore,
-                    delay_index++
-                ).then(sell_response => onContractSold(sell_response));
+                const recoverFn = (_error_code, makeDelay) =>
+                    makeDelay().then(() => this.observer.emit('REVERT', 'during'));
+
+                return recoverFromError(sellContract, recoverFn, errors_to_ignore, delay_index++).then(
+                    sell_response => onContractSold(sell_response)
+                );
             });
         }
     };
