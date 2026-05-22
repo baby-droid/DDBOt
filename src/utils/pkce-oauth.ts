@@ -7,18 +7,12 @@ const TURNOVER_SIDC = '2CC4E950-37B6-44E9-80CC-BA2E60E6E630';
 const LEGACY_APP_ID = '113192';
 
 /**
- * Login — legacy oauth.deriv.com with app_id=113192.
- * Scopes: read (account info), trade (buy/sell contracts), trading_information (P&L, history).
- * After login Deriv redirects back with token1/acct1/cur1 query params.
+ * Login — legacy oauth.deriv.com with app_id only.
+ * No scope param: scopes are determined by the registered app settings on Deriv.
+ * Adding scope in the URL causes redirect loops on legacy OAuth.
  */
 export function loginWithPKCE() {
-    const params = new URLSearchParams({
-        app_id: LEGACY_APP_ID,
-        l: 'EN',
-        brand: 'deriv',
-        scope: 'read trade trading_information',
-    });
-    window.location.href = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`;
+    window.location.href = `https://oauth.deriv.com/oauth2/authorize?app_id=${LEGACY_APP_ID}&l=EN&brand=deriv`;
 }
 
 /**

@@ -1,0 +1,169 @@
+.atl-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 10, 25, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(4px);
+    animation: atlFadeIn 0.18s ease;
+}
+
+.atl-modal {
+    background: linear-gradient(145deg, #0d1e36 0%, #091628 100%);
+    border: 1px solid rgba(0, 180, 220, 0.22);
+    border-radius: 16px;
+    padding: 36px 32px 28px;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    box-shadow:
+        0 0 40px rgba(0, 160, 220, 0.18),
+        0 8px 32px rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    &__close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        color: rgba(168, 212, 245, 0.5);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: color 0.2s, background 0.2s;
+
+        &:hover {
+            color: #a8d4f5;
+            background: rgba(168, 212, 245, 0.08);
+        }
+    }
+
+    &__icon {
+        font-size: 2.4rem;
+        margin-bottom: 2px;
+    }
+
+    &__title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #c8e8ff;
+        margin: 0;
+        text-align: center;
+        /* override global heading styles */
+        background: none !important;
+        -webkit-text-fill-color: #c8e8ff !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        display: block !important;
+    }
+
+    &__hint {
+        font-size: 0.8rem;
+        color: rgba(168, 212, 245, 0.65);
+        text-align: center;
+        line-height: 1.5;
+        margin: 0;
+
+        a {
+            color: #00d4ff;
+            text-decoration: none;
+            &:hover { text-decoration: underline; }
+        }
+
+        strong {
+            color: rgba(168, 212, 245, 0.9);
+        }
+    }
+
+    &__form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 4px;
+    }
+
+    &__input {
+        width: 100%;
+        background: rgba(0, 30, 60, 0.7);
+        border: 1.5px solid rgba(0, 180, 220, 0.25);
+        border-radius: 8px;
+        color: #c8e8ff;
+        font-size: 0.87rem;
+        font-family: 'Courier New', monospace;
+        padding: 12px 14px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        box-sizing: border-box;
+
+        &::placeholder { color: rgba(168, 212, 245, 0.3); }
+
+        &:focus {
+            border-color: rgba(0, 212, 255, 0.6);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+
+    &__error {
+        font-size: 0.78rem;
+        color: #ff7b7b;
+        margin: 0;
+        text-align: center;
+        animation: atlFadeIn 0.2s ease;
+    }
+
+    &__btn {
+        width: 100%;
+        background: linear-gradient(90deg, #0077cc 0%, #00b4d8 100%);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 600;
+        padding: 13px;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+
+        &:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+        &:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    }
+
+    &__spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: atlSpin 0.7s linear infinite;
+    }
+
+    &__note {
+        font-size: 0.68rem;
+        color: rgba(168, 212, 245, 0.3);
+        text-align: center;
+        margin: 4px 0 0;
+        line-height: 1.4;
+    }
+}
+
+@keyframes atlFadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes atlSpin {
+    to { transform: rotate(360deg); }
+}

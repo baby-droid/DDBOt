@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import clsx from 'clsx';
 import { observer } from 'mobx-react-lite';
+import ApiTokenLogin from './ApiTokenLogin';
 import PWAInstallButton from '@/components/pwa-install-button';
 import { generateOAuthURL, standalone_routes } from '@/components/shared';
 import Button from '@/components/shared_ui/button';
@@ -31,6 +32,7 @@ type TAppHeaderProps = {
 const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
     const { isDesktop } = useDevice();
     const { isAuthorizing, activeLoginid } = useApiBase();
+    const [showTokenModal, setShowTokenModal] = useState(false);
     const { client } = useStore() ?? {};
 
     const { data: activeAccount } = useActiveAccount({ allBalanceData: client?.all_accounts_balance });
@@ -137,6 +139,12 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
                 <div className='auth-actions'>
                     <Button
                         tertiary
+                        onClick={() => setShowTokenModal(true)}
+                    >
+                        <Localize i18n_default_text='API Token' />
+                    </Button>
+                    <Button
+                        tertiary
                         onClick={() => {
                             import('@/utils/pkce-oauth').then(({ loginWithPKCE }) => loginWithPKCE());
                         }}
@@ -173,6 +181,8 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
 
     if (client?.should_hide_header) return null;
     return (
+        <>
+        {showTokenModal && <ApiTokenLogin onClose={() => setShowTokenModal(false)} />}
         <Header
             className={clsx('app-header', {
                 'app-header--desktop': isDesktop,
@@ -192,6 +202,7 @@ const AppHeader = observer(({ isAuthenticating }: TAppHeaderProps) => {
             </Wrapper>
             {/* <PWAInstallModalTest /> */}
         </Header>
+        </>
     );
 });
 
