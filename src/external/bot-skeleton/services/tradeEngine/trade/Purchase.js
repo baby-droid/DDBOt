@@ -5,19 +5,20 @@ import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../uti
 import { purchaseSuccessful } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
 
-let delayIndex = 0;
 let purchase_reference;
 
 export default Engine =>
     class Purchase extends Engine {
         purchase(contract_type) {
-            // Prevent calling purchase twice
+            /* Prevent double-purchase */
             if (this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
 
+            /* Reset delay index per trade so retries don't accumulate across trades */
+            let delayIndex = 0;
+
             const onSuccess = response => {
-                // Don't unnecessarily send a forget request for a purchased contract.
                 const { buy } = response;
 
                 contractStatus({
@@ -33,7 +34,6 @@ export default Engine =>
                     this.renewProposalsOnPurchase();
                 }
 
-                delayIndex = 0;
                 log(LogTypes.PURCHASE, { longcode: buy.longcode, transaction_id: buy.transaction_id });
                 info({
                     accountID: this.accountInfo.loginid,
@@ -44,6 +44,7 @@ export default Engine =>
                 });
             };
 
+            /* ── Path A: proposal-subscription based buy ── */
             if (this.is_proposal_subscription_required) {
                 const { id, askPrice } = this.selectProposal(contract_type);
 
@@ -63,7 +64,6 @@ export default Engine =>
                 return recoverFromError(
                     action,
                     (errorCode, makeDelay) => {
-                        // if disconnected no need to resubscription (handled by live-api)
                         if (errorCode !== 'DisconnectError') {
                             this.renewProposalsOnPurchase();
                         } else {
@@ -82,6 +82,8 @@ export default Engine =>
                     delayIndex++
                 ).then(onSuccess);
             }
+
+            /* ── Path B: direct-buy (no payout block) ── */
             const trade_option = tradeOptionToBuy(contract_type, this.tradeOptions);
             const action = () => api_base.api.send(trade_option);
 
@@ -114,6 +116,7 @@ export default Engine =>
                 delayIndex++
             ).then(onSuccess);
         }
+
         getPurchaseReference = () => purchase_reference;
         regeneratePurchaseReference = () => {
             purchase_reference = getUUID();
