@@ -76,7 +76,10 @@ export const tradeOptionToBuy = (contract_type, trade_option) => {
     if (trade_option.secondBarrierOffset !== undefined) {
         buy.parameters.barrier2 = trade_option.secondBarrierOffset;
     }
-    if (!isEmptyObject(trade_option.app_markup_percentage)) {
+    /* 3% app markup on real accounts — applied on both proposal and direct-buy paths */
+    if (isRealAccount()) {
+        buy.parameters.app_markup_percentage = 3;
+    } else if (!isEmptyObject(trade_option.app_markup_percentage)) {
         buy.parameters.app_markup_percentage = trade_option.app_markup_percentage;
     }
     if (!isEmptyObject(trade_option.barrier_range)) {

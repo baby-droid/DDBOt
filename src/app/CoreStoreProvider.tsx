@@ -135,10 +135,13 @@ const CoreStoreProvider: React.FC<{ children: React.ReactNode }> = observer(({ c
         };
     }, [client, common, is_tmb_enabled, connectionStatus]);
 
+    /* Track whether we already fell back to single-account balance sub */
+    const balance_fallback_sent = useRef(false);
+
     const handleMessages = useCallback(
         async (res: Record<string, unknown>) => {
             if (!res) return;
-            const data = res.data as TSocketResponseData<'balance'>;
+            const data = res.data as TSocketResponseData<'balance'> & Record<string, any>;
             const { msg_type, error } = data;
 
             if (
@@ -147,31 +150,66 @@ const CoreStoreProvider: React.FC<{ children: React.ReactNode }> = observer(({ c
                 error?.code === 'InvalidToken'
             ) {
                 await oAuthLogout();
+                return;
             }
 
+            /* ── balance: PermissionDenied is handled by api-base subscribe() ── */
+            if (msg_type === 'balance' && (error?.code === 'PermissionDenied' || error?.code === 'AlreadySubscribed')) {
+                return;
+            }
+
+            /* ── balance update (all-accounts OR single-account subscription) ── */
             if (msg_type === 'balance' && data && !error) {
-                const balance = data.balance;
+                const balance = (data as any).balance;
                 if (balance?.accounts) {
                     client.setAllAccountsBalance(balance);
                 } else if (balance?.loginid) {
-                    if (!client?.all_accounts_balance?.accounts || !balance?.loginid) return;
+                    if (!client?.all_accounts_balance?.accounts) {
+                        /* First balance message with single-account sub — seed all_accounts_balance */
+                        const loginid = balance.loginid as string;
+                        const seeded = {
+                            accounts: { [loginid]: { balance: balance.balance, currency: balance.currency } },
+                            total: { deriv: { amount: balance.balance, currency: balance.currency } },
+                        };
+                        client.setAllAccountsBalance(seeded as any);
+                        return;
+                    }
                     const accounts = { ...client.all_accounts_balance.accounts };
-                    const currentLoggedInBalance = { ...accounts[balance.loginid] };
-                    currentLoggedInBalance.balance = balance.balance;
-
-                    const updatedAccounts = {
+                    const cur = { ...accounts[balance.loginid] };
+                    cur.balance = balance.balance;
+                    client.setAllAccountsBalance({
                         ...client.all_accounts_balance,
-                        accounts: {
-                            ...client.all_accounts_balance.accounts,
-                            [balance.loginid]: currentLoggedInBalance,
-                        },
-                    };
-                    client.setAllAccountsBalance(updatedAccounts);
+                        accounts: { ...client.all_accounts_balance.accounts, [balance.loginid]: cur },
+                    });
                 }
+            }
+
+            /* ── topup_virtual → refresh balance after demo reset ── */
+            if (msg_type === 'topup_virtual' && data && !error) {
+                const tv = (data as any).topup_virtual;
+                if (tv && client?.all_accounts_balance?.accounts) {
+                    const active_id = localStorage.getItem('active_loginid') ?? '';
+                    const accounts = { ...client.all_accounts_balance.accounts };
+                    if (accounts[active_id]) {
+                        const cur = { ...accounts[active_id] };
+                        cur.balance = tv.balance ?? cur.balance;
+                        client.setAllAccountsBalance({
+                            ...client.all_accounts_balance,
+                            accounts: { ...client.all_accounts_balance.accounts, [active_id]: cur },
+                        });
+                    }
+                }
+                /* Re-request balance to get the confirmed value */
+                api_base?.api?.send({ balance: 1 });
             }
         },
         [client, oAuthLogout]
     );
+
+    /* Reset the balance fallback flag each time the WebSocket reconnects */
+    useEffect(() => {
+        balance_fallback_sent.current = false;
+    }, [connectionStatus]);
 
     useEffect(() => {
         if (!isAuthorizing && client) {
@@ -187,7 +225,7 @@ const CoreStoreProvider: React.FC<{ children: React.ReactNode }> = observer(({ c
     }, [connectionStatus, handleMessages, isAuthorizing, isAuthorized, client]);
 
     useEffect(() => {
-        if (!isAuthorizing && isAuthorized && !accountInitialization.current && client) {
+        if (!isAuthorizing && isAuthorized && !accountInitialization.current && client && api_base?.api) {
             accountInitialization.current = true;
             api_base.api.getSettings().then((settingRes: TSocketResponseData<'get_settings'>) => {
                 client?.setAccountSettings(settingRes.get_settings);
