@@ -31,7 +31,6 @@ outputType = "webview"
 
 [[ports]]
 localPort = 5000
-externalPort = 80
 
 [[ports]]
 localPort = 5001
@@ -41,3 +40,8 @@ externalPort = 3000
 deploymentTarget = "static"
 build = ["npm", "run", "build"]
 publicDir = "dist"
+
+[userenv]
+
+[userenv.shared]
+secret = "pat_6e8a717d7fcc2b2db8d76dda4d073e6ec466ed19551fe9f7a31154c1f6cac00d"
